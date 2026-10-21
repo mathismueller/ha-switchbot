@@ -12,3 +12,42 @@ add_password:
       selector:
         text:
           type: password
+
+meter_pro_set_weather:
+  name: "Meter Pro: Set Weather & Outdoor Display"
+  description: "Pushes weather forecast icon and external temperature and humidity to a SwitchBot Meter Pro or Meter Pro CO2."
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: switchbot
+    icon:
+      required: true
+      selector:
+        select:
+          options:
+            - "sunny"
+            - "partly_cloudy"
+            - "cloudy"
+            - "rainy"
+            - "heavy_snow"
+            - "snowy"
+            - "light_snow"
+            - "none"
+    temperature:
+      required: false
+      selector:
+        number:
+          min: -40
+          max: 80
+          step: 0.1
+          unit_of_measurement: "°C"
+    humidity:
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 99
+          step: 1
+          unit_of_measurement: "%"

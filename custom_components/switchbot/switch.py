@@ -13,7 +13,7 @@ from homeassistant.components.switch import (
     SwitchEntity,
     SwitchEntityDescription,
 )
-from homeassistant.const import STATE_ON
+from homeassistant.const import EntityCategory, STATE_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
@@ -21,7 +21,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import AIRPURIFIER_BASIC_MODELS, AIRPURIFIER_TABLE_MODELS, DOMAIN
 from .coordinator import SwitchbotConfigEntry, SwitchbotDataUpdateCoordinator
-from .entity import SwitchbotSwitchedEntity, exception_handler
+from .entity import SwitchbotEntity, SwitchbotSwitchedEntity, exception_handler
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -111,6 +111,13 @@ async def async_setup_entry(
             SwitchbotGenericSwitch(coordinator, desc)
             for desc in CIRCULATOR_FAN_PRO_SWITCHES
         )
+    elif isinstance(coordinator.device, switchbot.SwitchbotMeterPro):
+        meter_switches: list[SwitchEntity] = [
+            SwitchBotMeterProBatteryIndicatorSwitch(coordinator),
+        ]
+        if isinstance(coordinator.device, switchbot.SwitchbotMeterProCO2):
+            meter_switches.append(SwitchBotMeterProCO2BuzzerSoundSwitch(coordinator))
+        async_add_entities(meter_switches)
     else:
         async_add_entities([SwitchBotSwitch(coordinator)])
 
@@ -335,4 +342,82 @@ class SwitchbotFanVerticalOscillationSwitch(SwitchbotFanOscillationSwitch):
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable vertical oscillation."""
         await self._device.set_vertical_oscillation(False)
+        self.async_write_ha_state()
+
+
+class SwitchBotMeterProBatteryIndicatorSwitch(
+    SwitchbotEntity, SwitchEntity, RestoreEntity
+):
+    """Representation of a Switchbot Meter Pro battery indicator toggle switch."""
+
+    _device: switchbot.SwitchbotMeterPro
+    _attr_translation_key = "battery_indicator"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_device_class = SwitchDeviceClass.SWITCH
+
+    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
+        """Initialize the battery indicator switch."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_unique_id}-battery_indicator"
+        self._attr_is_on = True
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if (last_state := await self.async_get_last_state()) is not None:
+            self._attr_is_on = last_state.state == STATE_ON
+
+    @exception_handler
+    @override
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Show battery indicator on screen."""
+        await self._device.show_battery_level(True)
+        self._attr_is_on = True
+        self.async_write_ha_state()
+
+    @exception_handler
+    @override
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Hide battery indicator on screen."""
+        await self._device.show_battery_level(False)
+        self._attr_is_on = False
+        self.async_write_ha_state()
+
+
+class SwitchBotMeterProCO2BuzzerSoundSwitch(
+    SwitchbotEntity, SwitchEntity, RestoreEntity
+):
+    """Representation of a Switchbot Meter Pro CO2 buzzer audible alarm switch."""
+
+    _device: switchbot.SwitchbotMeterProCO2
+    _attr_translation_key = "buzzer_sound"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_device_class = SwitchDeviceClass.SWITCH
+
+    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
+        """Initialize the buzzer sound switch."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_unique_id}-buzzer_sound"
+        self._attr_is_on = True
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if (last_state := await self.async_get_last_state()) is not None:
+            self._attr_is_on = last_state.state == STATE_ON
+
+    @exception_handler
+    @override
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Enable audible buzzer on alarm."""
+        await self._device.set_alert_sound(sound_on=True, volume=3)
+        self._attr_is_on = True
+        self.async_write_ha_state()
+
+    @exception_handler
+    @override
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Disable audible buzzer on alarm (flash only)."""
+        await self._device.set_alert_sound(sound_on=False, volume=3)
+        self._attr_is_on = False
         self.async_write_ha_state()

@@ -14,7 +14,13 @@ from homeassistant.components.number import (
     NumberEntity,
     NumberEntityDescription,
 )
-from homeassistant.const import EntityCategory, UnitOfTime
+from homeassistant.const import (
+    CONCENTRATION_PARTS_PER_MILLION,
+    PERCENTAGE,
+    EntityCategory,
+    UnitOfTemperature,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -36,8 +42,24 @@ async def async_setup_entry(
     """Set up SwitchBot number platform."""
     coordinator = entry.runtime_data
 
-    if isinstance(coordinator.device, switchbot.SwitchbotMeterProCO2):
-        async_add_entities([SwitchBotMeterProCO2DisplayTimeOffsetNumber(coordinator)])
+    if isinstance(coordinator.device, switchbot.SwitchbotMeterPro):
+        entities: list[NumberEntity] = [
+            SwitchBotMeterProComfortColdNumber(coordinator),
+            SwitchBotMeterProComfortHotNumber(coordinator),
+            SwitchBotMeterProComfortDryNumber(coordinator),
+            SwitchBotMeterProComfortWetNumber(coordinator),
+            SwitchBotMeterProTemperatureOffsetNumber(coordinator),
+            SwitchBotMeterProHumidityOffsetNumber(coordinator),
+        ]
+        if isinstance(coordinator.device, switchbot.SwitchbotMeterProCO2):
+            entities.extend(
+                [
+                    SwitchBotMeterProCO2DisplayTimeOffsetNumber(coordinator),
+                    SwitchBotMeterProCO2ThresholdGoodNumber(coordinator),
+                    SwitchBotMeterProCO2ThresholdModerateNumber(coordinator),
+                ]
+            )
+        async_add_entities(entities)
     elif isinstance(coordinator.device, switchbot.SwitchbotStandingFan):
         async_add_entities(
             SwitchBotStandingFanOscillationAngleNumber(coordinator, desc)
@@ -140,3 +162,289 @@ class SwitchBotStandingFanOscillationAngleNumber(SwitchbotEntity, NumberEntity):
         await self.entity_description.setter(self._device, int(value))
         self._attr_native_value = value
         self.async_write_ha_state()
+
+
+class SwitchBotMeterProComfortColdNumber(SwitchbotConnectionPolledEntity, NumberEntity):
+    """Comfort Cold temperature threshold."""
+
+    _device: switchbot.SwitchbotMeterPro
+    _attr_device_class = NumberDeviceClass.TEMPERATURE
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_translation_key = "comfort_cold"
+    _attr_native_min_value = -20.0
+    _attr_native_max_value = 79.5
+    _attr_native_step = 0.5
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+
+    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
+        """Initialize comfort cold threshold number."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_unique_id}_comfort_cold"
+        self._attr_native_value = 18.0
+
+    @exception_handler
+    @override
+    async def async_set_native_value(self, value: float) -> None:
+        """Set comfort cold threshold."""
+        await self._device.set_comfortlevel(
+            cold=value, hot=26.0, dry=30, wet=70
+        )
+        self._attr_native_value = value
+        self.async_write_ha_state()
+
+    @override
+    async def _async_read_value(self) -> None:
+        """Keep native value."""
+        if self._attr_native_value is None:
+            self._attr_native_value = 18.0
+
+
+class SwitchBotMeterProComfortHotNumber(SwitchbotConnectionPolledEntity, NumberEntity):
+    """Comfort Hot temperature threshold."""
+
+    _device: switchbot.SwitchbotMeterPro
+    _attr_device_class = NumberDeviceClass.TEMPERATURE
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_translation_key = "comfort_hot"
+    _attr_native_min_value = -19.5
+    _attr_native_max_value = 80.0
+    _attr_native_step = 0.5
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+
+    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
+        """Initialize comfort hot threshold number."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_unique_id}_comfort_hot"
+        self._attr_native_value = 26.0
+
+    @exception_handler
+    @override
+    async def async_set_native_value(self, value: float) -> None:
+        """Set comfort hot threshold."""
+        await self._device.set_comfortlevel(
+            cold=18.0, hot=value, dry=30, wet=70
+        )
+        self._attr_native_value = value
+        self.async_write_ha_state()
+
+    @override
+    async def _async_read_value(self) -> None:
+        """Keep native value."""
+        if self._attr_native_value is None:
+            self._attr_native_value = 26.0
+
+
+class SwitchBotMeterProComfortDryNumber(SwitchbotConnectionPolledEntity, NumberEntity):
+    """Comfort Dry relative humidity threshold."""
+
+    _device: switchbot.SwitchbotMeterPro
+    _attr_device_class = NumberDeviceClass.HUMIDITY
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_translation_key = "comfort_dry"
+    _attr_native_min_value = 1
+    _attr_native_max_value = 98
+    _attr_native_step = 1
+    _attr_native_unit_of_measurement = PERCENTAGE
+
+    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
+        """Initialize comfort dry threshold number."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_unique_id}_comfort_dry"
+        self._attr_native_value = 30
+
+    @exception_handler
+    @override
+    async def async_set_native_value(self, value: float) -> None:
+        """Set comfort dry threshold."""
+        await self._device.set_comfortlevel(
+            cold=18.0, hot=26.0, dry=int(value), wet=70
+        )
+        self._attr_native_value = int(value)
+        self.async_write_ha_state()
+
+    @override
+    async def _async_read_value(self) -> None:
+        """Keep native value."""
+        if self._attr_native_value is None:
+            self._attr_native_value = 30
+
+
+class SwitchBotMeterProComfortWetNumber(SwitchbotConnectionPolledEntity, NumberEntity):
+    """Comfort Wet relative humidity threshold."""
+
+    _device: switchbot.SwitchbotMeterPro
+    _attr_device_class = NumberDeviceClass.HUMIDITY
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_translation_key = "comfort_wet"
+    _attr_native_min_value = 2
+    _attr_native_max_value = 99
+    _attr_native_step = 1
+    _attr_native_unit_of_measurement = PERCENTAGE
+
+    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
+        """Initialize comfort wet threshold number."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_unique_id}_comfort_wet"
+        self._attr_native_value = 70
+
+    @exception_handler
+    @override
+    async def async_set_native_value(self, value: float) -> None:
+        """Set comfort wet threshold."""
+        await self._device.set_comfortlevel(
+            cold=18.0, hot=26.0, dry=30, wet=int(value)
+        )
+        self._attr_native_value = int(value)
+        self.async_write_ha_state()
+
+    @override
+    async def _async_read_value(self) -> None:
+        """Keep native value."""
+        if self._attr_native_value is None:
+            self._attr_native_value = 70
+
+
+class SwitchBotMeterProTemperatureOffsetNumber(
+    SwitchbotConnectionPolledEntity, NumberEntity
+):
+    """Temperature calibration offset."""
+
+    _device: switchbot.SwitchbotMeterPro
+    _attr_device_class = NumberDeviceClass.TEMPERATURE
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_translation_key = "temperature_offset"
+    _attr_native_min_value = -10.0
+    _attr_native_max_value = 10.0
+    _attr_native_step = 0.1
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+
+    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
+        """Initialize temperature offset number."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_unique_id}_temperature_offset"
+        self._attr_native_value = 0.0
+
+    @exception_handler
+    @override
+    async def async_set_native_value(self, value: float) -> None:
+        """Set temperature offset."""
+        await self._device.set_temperature_humidity_offsets(
+            temperature_offset=value, humidity_offset=0
+        )
+        self._attr_native_value = value
+        self.async_write_ha_state()
+
+    @override
+    async def _async_read_value(self) -> None:
+        """Fetch calibration offsets."""
+        offsets = await self._device.get_temperature_humidity_offsets()
+        self._attr_native_value = offsets["temperature_offset"]
+
+
+class SwitchBotMeterProHumidityOffsetNumber(
+    SwitchbotConnectionPolledEntity, NumberEntity
+):
+    """Humidity calibration offset."""
+
+    _device: switchbot.SwitchbotMeterPro
+    _attr_device_class = NumberDeviceClass.HUMIDITY
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_translation_key = "humidity_offset"
+    _attr_native_min_value = -30
+    _attr_native_max_value = 30
+    _attr_native_step = 1
+    _attr_native_unit_of_measurement = PERCENTAGE
+
+    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
+        """Initialize humidity offset number."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_unique_id}_humidity_offset"
+        self._attr_native_value = 0
+
+    @exception_handler
+    @override
+    async def async_set_native_value(self, value: float) -> None:
+        """Set humidity offset."""
+        await self._device.set_temperature_humidity_offsets(
+            temperature_offset=0.0, humidity_offset=int(value)
+        )
+        self._attr_native_value = int(value)
+        self.async_write_ha_state()
+
+    @override
+    async def _async_read_value(self) -> None:
+        """Fetch calibration offsets."""
+        offsets = await self._device.get_temperature_humidity_offsets()
+        self._attr_native_value = offsets["humidity_offset"]
+
+
+class SwitchBotMeterProCO2ThresholdGoodNumber(
+    SwitchbotConnectionPolledEntity, NumberEntity
+):
+    """CO2 Good Air Quality threshold (Green boundary)."""
+
+    _device: switchbot.SwitchbotMeterProCO2
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_translation_key = "co2_threshold_good"
+    _attr_native_min_value = 500
+    _attr_native_max_value = 1800
+    _attr_native_step = 100
+    _attr_native_unit_of_measurement = CONCENTRATION_PARTS_PER_MILLION
+
+    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
+        """Initialize CO2 good threshold number."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_unique_id}_co2_threshold_good"
+        self._attr_native_value = 1000
+
+    @exception_handler
+    @override
+    async def async_set_native_value(self, value: float) -> None:
+        """Set CO2 good threshold."""
+        await self._device.set_co2_thresholds(
+            lower=int(value), upper=1400
+        )
+        self._attr_native_value = int(value)
+        self.async_write_ha_state()
+
+    @override
+    async def _async_read_value(self) -> None:
+        """Keep native value."""
+        if self._attr_native_value is None:
+            self._attr_native_value = 1000
+
+
+class SwitchBotMeterProCO2ThresholdModerateNumber(
+    SwitchbotConnectionPolledEntity, NumberEntity
+):
+    """CO2 Moderate Air Quality threshold (Orange/Red boundary)."""
+
+    _device: switchbot.SwitchbotMeterProCO2
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_translation_key = "co2_threshold_moderate"
+    _attr_native_min_value = 600
+    _attr_native_max_value = 1900
+    _attr_native_step = 100
+    _attr_native_unit_of_measurement = CONCENTRATION_PARTS_PER_MILLION
+
+    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
+        """Initialize CO2 moderate threshold number."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_unique_id}_co2_threshold_moderate"
+        self._attr_native_value = 1400
+
+    @exception_handler
+    @override
+    async def async_set_native_value(self, value: float) -> None:
+        """Set CO2 moderate threshold."""
+        await self._device.set_co2_thresholds(
+            lower=1000, upper=int(value)
+        )
+        self._attr_native_value = int(value)
+        self.async_write_ha_state()
+
+    @override
+    async def _async_read_value(self) -> None:
+        """Keep native value."""
+        if self._attr_native_value is None:
+            self._attr_native_value = 1400

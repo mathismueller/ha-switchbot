@@ -11,8 +11,23 @@ from .const import DOMAIN, SupportedModels
 from .coordinator import SwitchbotConfigEntry, SwitchbotDataUpdateCoordinator
 
 SERVICE_ADD_PASSWORD = "add_password"
+SERVICE_SET_WEATHER = "meter_pro_set_weather"
 
 ATTR_PASSWORD = "password"
+ATTR_ICON = "icon"
+ATTR_TEMPERATURE = "temperature"
+ATTR_HUMIDITY = "humidity"
+
+ICON_MAP = {
+    "none": 0,
+    "sunny": 1,
+    "partly_cloudy": 2,
+    "cloudy": 3,
+    "rainy": 4,
+    "heavy_snow": 5,
+    "snowy": 6,
+    "light_snow": 7,
+}
 
 _PASSWORD_VALIDATOR = probatio.All(cv.string, cv.matches_regex(r"^\d{6,12}$"))
 
@@ -20,6 +35,18 @@ SCHEMA_ADD_PASSWORD_SERVICE = probatio.Schema(
     {
         probatio.Required(ATTR_DEVICE_ID): cv.string,
         probatio.Required(ATTR_PASSWORD): _PASSWORD_VALIDATOR,
+    },
+    extra=probatio.ALLOW_EXTRA,
+)
+
+SCHEMA_SET_WEATHER_SERVICE = probatio.Schema(
+    {
+        probatio.Required(ATTR_DEVICE_ID): cv.string,
+        probatio.Required(ATTR_ICON): probatio.In(list(ICON_MAP.keys())),
+        probatio.Optional(ATTR_TEMPERATURE): probatio.Coerce(float),
+        probatio.Optional(ATTR_HUMIDITY): probatio.All(
+            probatio.Coerce(int), probatio.Range(min=1, max=99)
+        ),
     },
     extra=probatio.ALLOW_EXTRA,
 )
@@ -69,6 +96,29 @@ async def async_add_password(call: ServiceCall) -> None:
     await coordinator.device.add_password(password)
 
 
+async def async_meter_pro_set_weather(call: ServiceCall) -> None:
+    """Push weather icon and optional external temperature/humidity to Meter Pro."""
+    device_id: str = call.data[ATTR_DEVICE_ID]
+    icon_str: str = call.data[ATTR_ICON]
+    temp = call.data.get(ATTR_TEMPERATURE)
+    hum = call.data.get(ATTR_HUMIDITY)
+
+    entry = _async_get_switchbot_entry_for_device_id(call.hass, device_id)
+    coordinator = entry.runtime_data
+    if not isinstance(coordinator.device, switchbot.SwitchbotMeterPro):
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="not_meter_pro_device",
+        )
+
+    icon_val = ICON_MAP[icon_str]
+    await coordinator.device.set_weather(
+        icon=icon_val,
+        temperature_c=temp,
+        humidity=hum,
+    )
+
+
 @callback
 def async_setup_services(hass: HomeAssistant) -> None:
     """Set up the services for the SwitchBot integration."""
@@ -77,4 +127,10 @@ def async_setup_services(hass: HomeAssistant) -> None:
         SERVICE_ADD_PASSWORD,
         async_add_password,
         schema=SCHEMA_ADD_PASSWORD_SERVICE,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_WEATHER,
+        async_meter_pro_set_weather,
+        schema=SCHEMA_SET_WEATHER_SERVICE,
     )

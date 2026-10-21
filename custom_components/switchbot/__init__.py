@@ -66,13 +66,20 @@ PLATFORMS_BY_TYPE = {
     ],
     SupportedModels.METER.value: [Platform.SENSOR],
     SupportedModels.METER_PLUS.value: [Platform.SENSOR],
-    SupportedModels.METER_PRO.value: [Platform.BUTTON, Platform.SENSOR],
+    SupportedModels.METER_PRO.value: [
+        Platform.BUTTON,
+        Platform.NUMBER,
+        Platform.SELECT,
+        Platform.SENSOR,
+        Platform.SWITCH,
+    ],
     SupportedModels.INDOOR_OUTDOOR_THERMO_HYGROMETER.value: [Platform.SENSOR],
     SupportedModels.METER_PRO_CO2.value: [
         Platform.BUTTON,
         Platform.NUMBER,
-        Platform.SENSOR,
         Platform.SELECT,
+        Platform.SENSOR,
+        Platform.SWITCH,
     ],
     SupportedModels.CONTACT.value: [
         Platform.BINARY_SENSOR,

@@ -44,6 +44,13 @@ async def async_setup_entry(
 
     if isinstance(coordinator.device, switchbot.SwitchbotMeterPro):
         entities.append(SwitchBotMeterProSyncDateTimeButton(coordinator))
+        if isinstance(coordinator.device, switchbot.SwitchbotMeterProCO2):
+            entities.extend(
+                [
+                    SwitchBotMeterProCO2ForceMeasurementButton(coordinator),
+                    SwitchBotMeterProCO2CalibrateButton(coordinator),
+                ]
+            )
 
     if (
         isinstance(coordinator.device, switchbot.SwitchbotLock)
@@ -194,3 +201,41 @@ class HalfLockButton(SwitchbotEntity, ButtonEntity):
         """Handle the button press."""
         _LOGGER.debug("Sending half lock command for %s", self._address)
         await self._device.half_lock()
+
+
+class SwitchBotMeterProCO2ForceMeasurementButton(SwitchbotEntity, ButtonEntity):
+    """Button to force immediate CO2 measurement."""
+
+    _device: switchbot.SwitchbotMeterProCO2
+    _attr_translation_key = "force_co2_measurement"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
+        """Initialize force measurement button."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_unique_id}_force_co2_measurement"
+
+    @exception_handler
+    @override
+    async def async_press(self) -> None:
+        """Force a new CO2 measurement."""
+        await self._device.force_new_co2_measurement()
+
+
+class SwitchBotMeterProCO2CalibrateButton(SwitchbotEntity, ButtonEntity):
+    """Button to initiate CO2 sensor recalibration."""
+
+    _device: switchbot.SwitchbotMeterProCO2
+    _attr_translation_key = "calibrate_co2"
+    _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
+        """Initialize calibrate button."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_unique_id}_calibrate_co2"
+
+    @exception_handler
+    @override
+    async def async_press(self) -> None:
+        """Trigger CO2 recalibration."""
+        await self._device.calibrate_co2_sensor()
