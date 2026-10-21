@@ -1,27 +1,27 @@
 {
   "config": {
     "abort": {
-      "already_configured_device": "[%key:common::config_flow::abort::already_configured_device%]",
+      "already_configured_device": "Device is already configured",
       "api_error": "Error while communicating with SwitchBot API: {error_detail}",
       "no_devices_found": "No supported SwitchBot devices found in range; If the device is in range, ensure the scanner has active scanning enabled, as SwitchBot devices cannot be discovered with passive scans. Active scans can be disabled once the device is configured. If you need clarification on whether the device is in-range, download the diagnostics for the integration that provides your Bluetooth adapter or proxy and check if the MAC address of the SwitchBot device is present.",
       "switchbot_unsupported_type": "Unsupported SwitchBot type.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Unexpected error"
     },
     "error": {
       "auth_failed": "Authentication failed: {error_detail}",
       "encryption_key_invalid": "Key ID or encryption key is invalid",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Unexpected error"
     },
     "flow_title": "{name} ({address})",
     "step": {
       "cloud_login": {
         "data": {
-          "password": "[%key:common::config_flow::data::password%]",
-          "username": "[%key:common::config_flow::data::username%]"
+          "password": "Password",
+          "username": "Username"
         },
         "data_description": {
-          "password": "[%key:component::switchbot::config::step::encrypted_auth::data_description::password%]",
-          "username": "[%key:component::switchbot::config::step::encrypted_auth::data_description::username%]"
+          "password": "The password of your SwitchBot account",
+          "username": "The username of your SwitchBot account"
         },
         "description": "Please provide your SwitchBot app username and password. This data won't be saved and is only used to retrieve device model information to automate discovery. Usernames and passwords are case-sensitive."
       },
@@ -30,8 +30,8 @@
       },
       "encrypted_auth": {
         "data": {
-          "password": "[%key:common::config_flow::data::password%]",
-          "username": "[%key:common::config_flow::data::username%]"
+          "password": "Password",
+          "username": "Username"
         },
         "data_description": {
           "password": "The password of your SwitchBot account",
@@ -59,7 +59,7 @@
       },
       "password": {
         "data": {
-          "password": "[%key:common::config_flow::data::password%]"
+          "password": "Password"
         },
         "data_description": {
           "password": "The password required for the Bot device access"
@@ -150,8 +150,8 @@
         "state_attributes": {
           "preset_mode": {
             "state": {
-              "manual": "[%key:common::state::manual%]",
-              "off": "[%key:common::state::off%]",
+              "manual": "Manual",
+              "off": "Off",
               "schedule": "Schedule"
             }
           }
@@ -163,8 +163,8 @@
         "state_attributes": {
           "last_run_success": {
             "state": {
-              "false": "[%key:component::binary_sensor::entity_component::problem::state::on%]",
-              "true": "[%key:component::binary_sensor::entity_component::problem::state::off%]"
+              "false": "Problem",
+              "true": "OK"
             }
           },
           "speed": {
@@ -179,8 +179,8 @@
         "state_attributes": {
           "last_run_success": {
             "state": {
-              "false": "[%key:component::binary_sensor::entity_component::problem::state::on%]",
-              "true": "[%key:component::binary_sensor::entity_component::problem::state::off%]"
+              "false": "Problem",
+              "true": "OK"
             }
           },
           "speed": {
@@ -219,13 +219,13 @@
         "state_attributes": {
           "last_run_success": {
             "state": {
-              "false": "[%key:component::binary_sensor::entity_component::problem::state::on%]",
-              "true": "[%key:component::binary_sensor::entity_component::problem::state::off%]"
+              "false": "Problem",
+              "true": "OK"
             }
           },
           "preset_mode": {
             "state": {
-              "auto": "[%key:common::state::auto%]",
+              "auto": "Auto",
               "level_1": "Level 1",
               "level_2": "Level 2",
               "level_3": "Level 3",
@@ -239,8 +239,8 @@
         "state_attributes": {
           "last_run_success": {
             "state": {
-              "false": "[%key:component::binary_sensor::entity_component::problem::state::on%]",
-              "true": "[%key:component::binary_sensor::entity_component::problem::state::off%]"
+              "false": "Problem",
+              "true": "OK"
             }
           },
           "preset_mode": {
@@ -248,7 +248,7 @@
               "baby": "Baby",
               "hurricane": "Hurricane",
               "natural": "Natural",
-              "normal": "[%key:common::state::normal%]",
+              "normal": "Normal",
               "sleep": "Sleep"
             }
           }
@@ -258,11 +258,11 @@
         "state_attributes": {
           "preset_mode": {
             "state": {
-              "baby": "[%key:component::switchbot::entity::fan::fan::state_attributes::preset_mode::state::baby%]",
+              "baby": "Baby",
               "custom_natural": "Custom natural",
-              "natural": "[%key:component::switchbot::entity::fan::fan::state_attributes::preset_mode::state::natural%]",
-              "normal": "[%key:common::state::normal%]",
-              "sleep": "[%key:component::switchbot::entity::fan::fan::state_attributes::preset_mode::state::sleep%]"
+              "natural": "Natural",
+              "normal": "Normal",
+              "sleep": "Sleep"
             }
           }
         }
@@ -273,11 +273,11 @@
         "state_attributes": {
           "mode": {
             "state": {
-              "auto": "[%key:common::state::auto%]",
+              "auto": "Auto",
               "drying_filter": "Drying filter",
-              "high": "[%key:common::state::high%]",
-              "low": "[%key:common::state::low%]",
-              "medium": "[%key:common::state::medium%]",
+              "high": "High",
+              "low": "Low",
+              "medium": "Medium",
               "quiet": "Quiet",
               "sleep": "Sleep",
               "target_humidity": "Target humidity"
@@ -289,8 +289,8 @@
         "state_attributes": {
           "last_run_success": {
             "state": {
-              "false": "[%key:component::binary_sensor::entity_component::problem::state::on%]",
-              "true": "[%key:component::binary_sensor::entity_component::problem::state::off%]"
+              "false": "Problem",
+              "true": "OK"
             }
           }
         }
@@ -298,10 +298,10 @@
     },
     "light": {
       "air_purifier_light": {
-        "name": "[%key:component::light::title%]"
+        "name": "Light"
       },
       "circulator_fan_pro_light": {
-        "name": "[%key:component::light::title%]"
+        "name": "Light"
       },
       "light": {
         "state_attributes": {
@@ -359,8 +359,8 @@
         "state_attributes": {
           "last_run_success": {
             "state": {
-              "false": "[%key:component::binary_sensor::entity_component::problem::state::on%]",
-              "true": "[%key:component::binary_sensor::entity_component::problem::state::off%]"
+              "false": "Problem",
+              "true": "OK"
             }
           }
         }
@@ -407,7 +407,7 @@
         "state": {
           "refresh_only": "Refresh data only",
           "toggle_data_source": "Toggle Indoor / Outdoor",
-          "toggle_unit": "Toggle °C / °F"
+          "toggle_unit": "Toggle \u00b0C / \u00b0F"
         }
       },
       "buzzer_volume": {
@@ -437,7 +437,7 @@
         "name": "Night light",
         "state": {
           "bright": "Bright",
-          "off": "[%key:common::state::off%]",
+          "off": "Off",
           "soft": "Soft"
         }
       },
@@ -463,9 +463,9 @@
         "name": "Battery range",
         "state": {
           "critical": "Critical",
-          "high": "[%key:common::state::high%]",
-          "low": "[%key:common::state::low%]",
-          "medium": "[%key:common::state::medium%]"
+          "high": "High",
+          "low": "Low",
+          "medium": "Medium"
         }
       },
       "bluetooth_signal": {
@@ -489,10 +489,10 @@
       "water_level": {
         "name": "Water level",
         "state": {
-          "empty": "[%key:common::state::empty%]",
-          "high": "[%key:common::state::high%]",
-          "low": "[%key:common::state::low%]",
-          "medium": "[%key:common::state::medium%]"
+          "empty": "Empty",
+          "high": "High",
+          "low": "Low",
+          "medium": "Medium"
         }
       },
       "wifi_signal": {
@@ -510,8 +510,8 @@
         "state_attributes": {
           "last_run_success": {
             "state": {
-              "false": "[%key:component::binary_sensor::entity_component::problem::state::on%]",
-              "true": "[%key:component::binary_sensor::entity_component::problem::state::off%]"
+              "false": "Problem",
+              "true": "OK"
             }
           },
           "switch_mode": {
@@ -540,8 +540,8 @@
         "state_attributes": {
           "last_run_success": {
             "state": {
-              "false": "[%key:component::binary_sensor::entity_component::problem::state::on%]",
-              "true": "[%key:component::binary_sensor::entity_component::problem::state::off%]"
+              "false": "Problem",
+              "true": "OK"
             }
           }
         }

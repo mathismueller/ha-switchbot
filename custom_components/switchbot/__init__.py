@@ -504,7 +504,7 @@ def _migrate_deprecated_model_type(
     return None
 
 
-async def async_migrate_entry(hass: HomeAssistant, entry: SwitchbotConfigEntry) -> None:
+async def async_migrate_entry(hass: HomeAssistant, entry: SwitchbotConfigEntry) -> bool:
     """Migrate old entry."""
     version = entry.version
     minor_version = entry.minor_version
@@ -557,6 +557,9 @@ async def async_migrate_entry(hass: HomeAssistant, entry: SwitchbotConfigEntry) 
             minor_version=1,
         )
         _LOGGER.debug("Migration to version 2.1 successful")
+        return True
+
+    return True
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
