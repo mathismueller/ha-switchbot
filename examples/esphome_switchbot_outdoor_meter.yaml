@@ -1,0 +1,103 @@
+# ==============================================================================
+# ESPHome SwitchBot Outdoor Meter (WoIOSensorTH) Beacon Emulator
+# ==============================================================================
+# Emulates a SwitchBot Outdoor Meter by broadcasting Home Assistant temperature
+# and humidity entities as SwitchBot manufacturer advertisements (0x0969).
+#
+# Can be run standalone or combined with an existing ESPHome bluetooth_proxy.
+# ==============================================================================
+
+esphome:
+  name: switchbot-outdoor-beacon
+  friendly_name: SwitchBot Outdoor Beacon
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf  # Recommended when combining with bluetooth_proxy
+
+# Optional: Enable Bluetooth proxy alongside the beacon
+bluetooth_proxy:
+  active: true
+
+esp32_ble:
+  max_connections: 4
+
+# BLE Server for broadcasting SwitchBot manufacturer data (Company ID: 0x0969)
+esp32_ble_server:
+  id: sb_beacon_server
+  manufacturer_data:
+    - 0x69  # Company ID: 0x0969 (Little Endian)
+    - 0x09
+    # Replace with your ESP32's Bluetooth MAC bytes (or leave to be overwritten by the script)
+    - 0xAA
+    - 0xBB
+    - 0xCC
+    - 0xDD
+    - 0xEE
+    - 0xFF
+    - 0xE0  # WoIOSensorTH model flag
+    - 0x0F
+    - 0x00
+    - 0x80
+    - 0x00
+    - 0x64  # Battery 100%
+
+# 1. Pull outdoor readings directly from Home Assistant
+sensor:
+  - platform: homeassistant
+    id: outdoor_temperature
+    entity_id: sensor.outdoor_temperature  # <-- Replace with your HA temperature sensor
+    on_value:
+      then:
+        - script.execute: update_switchbot_adv
+
+  - platform: homeassistant
+    id: outdoor_humidity
+    entity_id: sensor.outdoor_humidity     # <-- Replace with your HA humidity sensor
+    on_value:
+      then:
+        - script.execute: update_switchbot_adv
+
+# 2. Periodically refresh the beacon every 30 seconds
+interval:
+  - interval: 30s
+    then:
+      - script.execute: update_switchbot_adv
+
+# 3. Encode and broadcast the SwitchBot WoIOSensorTH advertisement
+script:
+  - id: update_switchbot_adv
+    then:
+      - lambda: |-
+          if (isnan(id(outdoor_temperature).state) || isnan(id(outdoor_humidity).state)) {
+            return;
+          }
+
+          float temp = id(outdoor_temperature).state;
+          int hum = (int) id(outdoor_humidity).state;
+
+          // Replace with your ESP32's actual BLE MAC address (find it in ESPHome boot logs)
+          uint8_t mac[6] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
+
+          // SwitchBot 3-byte temperature & humidity encoding:
+          // Byte 8: decimal fraction (0.1 °C units)
+          // Byte 9: bit[7] = sign (1=positive, 0=negative), bits[6:0] = integer °C
+          // Byte 10: bit[7] = scale (0=Celsius, 1=Fahrenheit), bits[6:0] = humidity %
+          uint8_t temp_dec = (uint8_t)((int)(abs(temp) * 10) % 10) & 0x0F;
+          uint8_t temp_int = (temp >= 0 ? 0x80 : 0x00) | ((uint8_t)abs(temp) & 0x7F);
+          uint8_t hum_byte = (uint8_t)hum & 0x7F;
+
+          // Construct the 14-byte BLE payload:
+          // [2B Company ID] + [6B MAC] + [2B Model/Flags] + [3B T/H data] + [1B Battery/Counter]
+          std::vector<uint8_t> payload = {
+            0x69, 0x09,                                     // SwitchBot Company ID (0x0969)
+            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], // ESP32 BLE MAC
+            0xE0, 0x0F,                                     // WoIOSensorTH model flag
+            temp_dec, temp_int, hum_byte,                   // Temperature & Humidity
+            0x64                                            // Battery 100% (0x64)
+          };
+
+          id(sb_beacon_server)->set_manufacturer_data(payload);
+          ESP_LOGI("switchbot", "Broadcasting WoIOSensorTH: %.1f C, %d %%, MAC: %02X:%02X:%02X:%02X:%02X:%02X",
+                   temp, hum, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);

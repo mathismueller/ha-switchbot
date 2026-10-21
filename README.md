@@ -67,6 +67,18 @@ This integration is a direct drop-in replacement for the core Home Assistant `sw
 
 ---
 
+## 🌡️ External / Outdoor Sensor Emulation via ESPHome
+
+The SwitchBot Meter Pro can display outdoor temperature and humidity readings received directly from an external SwitchBot Outdoor Meter via local BLE broadcasts (`0x0969` / `WoSensorTH`).
+
+If you do not own a physical SwitchBot Outdoor Meter, **you can emulate one using any ESP32 running ESPHome** (even on an existing ESPHome Bluetooth proxy node):
+
+1. **Flash ESPHome**: Use the provided [ESPHome SwitchBot Beacon Template](examples/esphome_switchbot_outdoor_meter.yaml). It subscribes to any Home Assistant temperature and humidity entities and broadcasts them as SwitchBot Outdoor Meter advertisement beacons using your ESP32's BLE MAC address.
+2. **Pair the MAC Address**: Call the `switchbot.meter_pro_set_external_sensor_mac` action in Home Assistant with your ESP32's Bluetooth MAC address (Slot 1).
+3. **Toggle on Display**: Press the top physical button on your Meter Pro to switch the LCD between the internal room sensor and your external ESP32 broadcast! (Note: The `OUT` badge with the wave icon will appear when viewing the external readings).
+
+---
+
 ## 📦 Installation
 
 ### Via HACS (Recommended)
