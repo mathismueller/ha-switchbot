@@ -1,0 +1,21 @@
+[project]
+name = "ha-switchbot"
+version = "0.1.0"
+description = "Enhanced Home Assistant SwitchBot integration with full Meter Pro & Meter Pro CO2 support"
+readme = "README.md"
+authors = [
+    { name = "Mathis Müller", email = "hello@mathismueller.eu" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "pySwitchbot",
+]
+
+[tool.uv.sources]
+pySwitchbot = { path = "../pySwitchbot", editable = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+]
