@@ -31,14 +31,17 @@ from custom_components.switchbot.select import (
     SwitchBotMeterProCO2UpdateIntervalSelect,
     SwitchBotMeterProDateFormatSelect,
     SwitchBotMeterProTemperatureUpdateIntervalSelect,
+    SwitchBotMeterProWeatherConditionSelect,
     async_setup_entry as async_setup_select,
 )
 from custom_components.switchbot.services import (
+    ICON_MAP,
     async_meter_pro_set_weather,
 )
 from custom_components.switchbot.switch import (
     SwitchBotMeterProBatteryIndicatorSwitch,
     SwitchBotMeterProCO2BuzzerSoundSwitch,
+    SwitchBotMeterProDisplayDataSourceSwitch,
     async_setup_entry as async_setup_switch,
 )
 
@@ -83,22 +86,45 @@ async def test_buzzer_sound_switch(mock_meter_pro_co2_coordinator):
         assert entity.is_on is True
 
 
+async def test_display_data_source_switch(mock_meter_pro_coordinator):
+    """Test in/out sensor toggle switch."""
+    entity = SwitchBotMeterProDisplayDataSourceSwitch(mock_meter_pro_coordinator)
+    assert entity.unique_id == "aa:bb:cc:dd:ee:ff-display_data_source"
+    assert entity.translation_key == "display_data_source"
+    assert entity.is_on is False
+
+    with patch.object(entity, "async_write_ha_state"):
+        await entity.async_turn_on()
+        mock_meter_pro_coordinator.device.set_display_data_source.assert_awaited_once_with(
+            outdoor=True
+        )
+        assert entity.is_on is True
+
+        await entity.async_turn_off()
+        mock_meter_pro_coordinator.device.set_display_data_source.assert_awaited_with(
+            outdoor=False
+        )
+        assert entity.is_on is False
+
+
 async def test_switch_setup_entry(mock_meter_pro_coordinator, mock_meter_pro_co2_coordinator):
     """Test async_setup_entry for switch platform."""
     added_entities = []
     callback = lambda entities: added_entities.extend(entities)
 
-    # Meter Pro (non-CO2): should add battery indicator only
+    # Meter Pro (non-CO2): should add battery indicator and display data source
     entry = MagicMock(runtime_data=mock_meter_pro_coordinator)
     await async_setup_switch(None, entry, callback)
     assert any(isinstance(e, SwitchBotMeterProBatteryIndicatorSwitch) for e in added_entities)
+    assert any(isinstance(e, SwitchBotMeterProDisplayDataSourceSwitch) for e in added_entities)
     assert not any(isinstance(e, SwitchBotMeterProCO2BuzzerSoundSwitch) for e in added_entities)
 
-    # Meter Pro CO2: should add both battery indicator and buzzer sound
+    # Meter Pro CO2: should add battery indicator, display data source, and buzzer sound
     added_entities.clear()
     entry = MagicMock(runtime_data=mock_meter_pro_co2_coordinator)
     await async_setup_switch(None, entry, callback)
     assert any(isinstance(e, SwitchBotMeterProBatteryIndicatorSwitch) for e in added_entities)
+    assert any(isinstance(e, SwitchBotMeterProDisplayDataSourceSwitch) for e in added_entities)
     assert any(isinstance(e, SwitchBotMeterProCO2BuzzerSoundSwitch) for e in added_entities)
 
 
@@ -187,6 +213,29 @@ async def test_temperature_update_interval_select(mock_meter_pro_coordinator):
         assert entity.current_option == "10m"
 
 
+async def test_weather_condition_select(mock_meter_pro_coordinator):
+    """Test weather condition select entity."""
+    entity = SwitchBotMeterProWeatherConditionSelect(mock_meter_pro_coordinator)
+    assert "sunny" in entity.options
+    assert "heavy_snow" in entity.options
+    assert "pouring" in entity.options
+    assert entity.entity_registry_enabled_default is False
+
+    from switchbot import MeterProWeatherIcon
+    mock_meter_pro_coordinator.device.get_weather = AsyncMock(
+        return_value={"icon": MeterProWeatherIcon.SUNNY}
+    )
+    await entity._async_read_value()
+    assert entity.current_option == "sunny"
+
+    with patch.object(entity, "async_write_ha_state"):
+        await entity.async_select_option("pouring")
+        mock_meter_pro_coordinator.device.set_weather.assert_awaited_once_with(
+            icon=MeterProWeatherIcon.POURING
+        )
+        assert entity.current_option == "pouring"
+
+
 async def test_select_setup_entry(mock_meter_pro_coordinator, mock_meter_pro_co2_coordinator):
     """Test async_setup_entry for select platform."""
     added_entities = []
@@ -199,6 +248,7 @@ async def test_select_setup_entry(mock_meter_pro_coordinator, mock_meter_pro_co2
     assert SwitchBotMeterProDateFormatSelect in types
     assert SwitchBotMeterProButtonFunctionSelect in types
     assert SwitchBotMeterProTemperatureUpdateIntervalSelect in types
+    assert SwitchBotMeterProWeatherConditionSelect in types
     assert SwitchBotMeterProCO2BuzzerVolumeSelect in types
     assert SwitchBotMeterProCO2UpdateIntervalSelect in types
 
@@ -389,3 +439,62 @@ async def test_meter_pro_set_weather_service_invalid_device():
     ):
         with pytest.raises(ServiceValidationError):
             await async_meter_pro_set_weather(call)
+
+
+async def test_meter_pro_weather_icon_mappings():
+    """Verify all weather icon mappings, especially the snow/rain fixes."""
+    assert ICON_MAP["heavy_snow"] == 7
+    assert ICON_MAP["light_snow"] == 6
+    assert ICON_MAP["snowy"] == 6
+    assert ICON_MAP["pouring"] == 5
+    assert ICON_MAP["heavy_rain"] == 5
+    assert ICON_MAP["rainy"] == 4
+    assert ICON_MAP["cloudy"] == 3
+    assert ICON_MAP["partly_cloudy"] == 2
+    assert ICON_MAP["sunny"] == 1
+    assert ICON_MAP["none"] == 0
+
+
+async def test_entity_registry_enabled_default_rules(mock_meter_pro_co2_coordinator):
+    """Verify entity_registry_enabled_default rules.
+
+    Only quality thresholds, time offset, and weather condition select should be disabled by default.
+    All other entities should be enabled by default.
+    """
+    coord = mock_meter_pro_co2_coordinator
+
+    # Disabled by default
+    assert SwitchBotMeterProCO2ThresholdGoodNumber(coord).entity_registry_enabled_default is False
+    assert SwitchBotMeterProCO2ThresholdModerateNumber(coord).entity_registry_enabled_default is False
+    assert SwitchBotMeterProCO2DisplayTimeOffsetNumber(coord).entity_registry_enabled_default is False
+    assert SwitchBotMeterProWeatherConditionSelect(coord).entity_registry_enabled_default is False
+
+    # Enabled by default
+    assert SwitchBotMeterProComfortColdNumber(coord).entity_registry_enabled_default is True
+    assert SwitchBotMeterProComfortHotNumber(coord).entity_registry_enabled_default is True
+    assert SwitchBotMeterProComfortDryNumber(coord).entity_registry_enabled_default is True
+    assert SwitchBotMeterProComfortWetNumber(coord).entity_registry_enabled_default is True
+    assert SwitchBotMeterProTemperatureOffsetNumber(coord).entity_registry_enabled_default is True
+    assert SwitchBotMeterProHumidityOffsetNumber(coord).entity_registry_enabled_default is True
+    assert SwitchBotMeterProCO2TimeFormatSelect(coord).entity_registry_enabled_default is True
+    assert SwitchBotMeterProDateFormatSelect(coord).entity_registry_enabled_default is True
+    assert SwitchBotMeterProButtonFunctionSelect(coord).entity_registry_enabled_default is True
+    assert SwitchBotMeterProCO2BuzzerVolumeSelect(coord).entity_registry_enabled_default is True
+    assert SwitchBotMeterProCO2UpdateIntervalSelect(coord).entity_registry_enabled_default is True
+    assert SwitchBotMeterProTemperatureUpdateIntervalSelect(coord).entity_registry_enabled_default is True
+
+
+async def test_firmware_version_in_device_info(mock_meter_pro_coordinator):
+    """Test that firmware version is read from parsed_data and set on device_info."""
+    mock_meter_pro_coordinator.device.parsed_data = {"firmware": 2.1}
+    entity = SwitchBotMeterProBatteryIndicatorSwitch(mock_meter_pro_coordinator)
+    assert entity.device_info["sw_version"] == "2.1"
+
+    # Test dynamic update when firmware is populated later
+    mock_meter_pro_coordinator.device.parsed_data = {}
+    entity_dynamic = SwitchBotMeterProBatteryIndicatorSwitch(mock_meter_pro_coordinator)
+    assert entity_dynamic.device_info.get("sw_version") is None
+
+    mock_meter_pro_coordinator.device.parsed_data = {"firmware": 1.5}
+    entity_dynamic._async_update_attrs()
+    assert entity_dynamic.device_info["sw_version"] == "1.5"

@@ -441,6 +441,19 @@
           "mm_dd": "Month/Day (MM/DD)"
         }
       },
+      "weather_condition": {
+        "name": "Weather condition",
+        "state": {
+          "cloudy": "Cloudy",
+          "heavy_snow": "Heavy snow",
+          "none": "None",
+          "partly_cloudy": "Partly cloudy",
+          "pouring": "Pouring / Heavy rain",
+          "rainy": "Rainy",
+          "snowy": "Snowy",
+          "sunny": "Sunny"
+        }
+      },
       "night_light": {
         "name": "Night light",
         "state": {
@@ -510,6 +523,9 @@
     "switch": {
       "battery_indicator": {
         "name": "Battery indicator"
+      },
+      "display_data_source": {
+        "name": "Outdoor sensor display"
       },
       "buzzer_sound": {
         "name": "Buzzer alarm sound"

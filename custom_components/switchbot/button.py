@@ -1,11 +1,13 @@
 """Button support for SwitchBot devices."""
 
+import contextlib
 import logging
 from typing import override
 
 import switchbot
 from switchbot import SwitchbotModel
 
+from homeassistant.components import bluetooth
 from homeassistant.components.button import ButtonEntity
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
@@ -177,6 +179,13 @@ class SwitchBotMeterProSyncDateTimeButton(SwitchbotEntity, ButtonEntity):
             utc_offset_minutes,
         )
 
+        if self.hass:
+            with contextlib.suppress(Exception):
+                if ble_device := bluetooth.async_ble_device_from_address(
+                    self.hass, self._address, connectable=True
+                ):
+                    self._device._device = ble_device
+
         await self._device.set_datetime(
             timestamp=timestamp,
             utc_offset_hours=utc_offset_hours,
@@ -219,6 +228,12 @@ class SwitchBotMeterProCO2ForceMeasurementButton(SwitchbotEntity, ButtonEntity):
     @override
     async def async_press(self) -> None:
         """Force a new CO2 measurement."""
+        if self.hass:
+            with contextlib.suppress(Exception):
+                if ble_device := bluetooth.async_ble_device_from_address(
+                    self.hass, self._address, connectable=True
+                ):
+                    self._device._device = ble_device
         await self._device.force_new_co2_measurement()
 
 
@@ -238,4 +253,10 @@ class SwitchBotMeterProCO2CalibrateButton(SwitchbotEntity, ButtonEntity):
     @override
     async def async_press(self) -> None:
         """Trigger CO2 recalibration."""
+        if self.hass:
+            with contextlib.suppress(Exception):
+                if ble_device := bluetooth.async_ble_device_from_address(
+                    self.hass, self._address, connectable=True
+                ):
+                    self._device._device = ble_device
         await self._device.calibrate_co2_sensor()

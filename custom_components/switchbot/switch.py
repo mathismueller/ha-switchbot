@@ -114,6 +114,7 @@ async def async_setup_entry(
     elif isinstance(coordinator.device, switchbot.SwitchbotMeterPro):
         meter_switches: list[SwitchEntity] = [
             SwitchBotMeterProBatteryIndicatorSwitch(coordinator),
+            SwitchBotMeterProDisplayDataSourceSwitch(coordinator),
         ]
         if isinstance(coordinator.device, switchbot.SwitchbotMeterProCO2):
             meter_switches.append(SwitchBotMeterProCO2BuzzerSoundSwitch(coordinator))
@@ -419,5 +420,44 @@ class SwitchBotMeterProCO2BuzzerSoundSwitch(
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Disable audible buzzer on alarm (flash only)."""
         await self._device.set_alert_sound(sound_on=False, volume=3)
+        self._attr_is_on = False
+        self.async_write_ha_state()
+
+
+class SwitchBotMeterProDisplayDataSourceSwitch(
+    SwitchbotEntity, SwitchEntity, RestoreEntity
+):
+    """Representation of a Switchbot Meter Pro IN/OUT sensor toggle switch."""
+
+    _device: switchbot.SwitchbotMeterPro
+    _attr_translation_key = "display_data_source"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_device_class = SwitchDeviceClass.SWITCH
+
+    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
+        """Initialize the display data source switch."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_unique_id}-display_data_source"
+        self._attr_is_on = False
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if (last_state := await self.async_get_last_state()) is not None:
+            self._attr_is_on = last_state.state == STATE_ON
+
+    @exception_handler
+    @override
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Switch display to outdoor sensor."""
+        await self._device.set_display_data_source(outdoor=True)
+        self._attr_is_on = True
+        self.async_write_ha_state()
+
+    @exception_handler
+    @override
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Switch display to indoor sensor."""
+        await self._device.set_display_data_source(outdoor=False)
         self._attr_is_on = False
         self.async_write_ha_state()

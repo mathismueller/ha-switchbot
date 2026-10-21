@@ -31,9 +31,11 @@ meter_pro_set_weather:
             - "partly_cloudy"
             - "cloudy"
             - "rainy"
-            - "heavy_snow"
+            - "pouring"
+            - "heavy_rain"
             - "snowy"
             - "light_snow"
+            - "heavy_snow"
             - "none"
     temperature:
       required: false

@@ -83,6 +83,7 @@ class SwitchBotMeterProCO2DisplayTimeOffsetNumber(
     _attr_native_max_value = _MAX_TIME_OFFSET_MINUTES
     _attr_native_step = 1.0
     _attr_native_unit_of_measurement = UnitOfTime.MINUTES
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
         """Initialize the number entity."""
@@ -404,6 +405,7 @@ class SwitchBotMeterProCO2ThresholdGoodNumber(
     _attr_native_max_value = 1800
     _attr_native_step = 100
     _attr_native_unit_of_measurement = PARTS_PER_MILLION
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
         """Initialize CO2 good threshold number."""
@@ -443,6 +445,7 @@ class SwitchBotMeterProCO2ThresholdModerateNumber(
     _attr_native_max_value = 1900
     _attr_native_step = 100
     _attr_native_unit_of_measurement = PARTS_PER_MILLION
+    _attr_entity_registry_enabled_default = False
 
     def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
         """Initialize CO2 moderate threshold number."""

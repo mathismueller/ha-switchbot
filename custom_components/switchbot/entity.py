@@ -1,6 +1,7 @@
 """An abstract class common to all Switchbot entities."""
 
 from collections.abc import Callable, Coroutine, Mapping
+import contextlib
 import logging
 from typing import Any, Concatenate, override
 
@@ -47,12 +48,20 @@ class SwitchbotEntity(
         # version of the integration.
         if ":" in self._address:
             connections.add((dr.CONNECTION_NETWORK_MAC, self._address))
+        sw_version = coordinator.device.parsed_data.get("firmware")
+        if isinstance(sw_version, (int, float)):
+            sw_version_str = f"{sw_version:.1f}"
+        elif sw_version is not None:
+            sw_version_str = str(sw_version)
+        else:
+            sw_version_str = None
         self._attr_device_info = DeviceInfo(
             connections=connections,
             manufacturer=MANUFACTURER,
             # Sometimes the modelName is missing from ads
             model=coordinator.model,
             name=coordinator.device_name,
+            sw_version=sw_version_str,
         )
         self._channel: int | None = None
 
@@ -72,6 +81,15 @@ class SwitchbotEntity(
     @callback
     def _async_update_attrs(self) -> None:
         """Update the entity attributes."""
+        if (
+            self._attr_device_info
+            and self._attr_device_info.get("sw_version") is None
+            and (fw := self.parsed_data.get("firmware")) is not None
+        ):
+            sw_str = f"{fw:.1f}" if isinstance(fw, (int, float)) else str(fw)
+            self._attr_device_info = DeviceInfo(
+                **{**self._attr_device_info, "sw_version": sw_str}
+            )
 
     @callback
     @override
@@ -103,8 +121,6 @@ class SwitchbotConnectionPolledEntity(SwitchbotEntity):
     Bluetooth adapter, so the first read is deferred until startup is over.
     """
 
-    _attr_entity_registry_enabled_default = False
-
     @property
     @override
     def should_poll(self) -> bool:
@@ -135,12 +151,21 @@ class SwitchbotConnectionPolledEntity(SwitchbotEntity):
     @override
     async def async_update(self) -> None:
         """Read the value from the device."""
-        if not bluetooth.async_ble_device_from_address(
-            self.hass, self._address, connectable=True
-        ):
+        ble_device = None
+        if self.hass:
+            with contextlib.suppress(Exception):
+                ble_device = bluetooth.async_ble_device_from_address(
+                    self.hass, self._address, connectable=True
+                )
+        if ble_device:
+            self._device._device = ble_device
+        else:
             _LOGGER.debug("No connectable path to %s, skipping update", self._address)
             return
         try:
+            if self.coordinator.device.parsed_data.get("firmware") is None:
+                with contextlib.suppress(Exception):
+                    await self._device.get_basic_info()
             await self._async_read_value()
         except (SwitchbotOperationError, BleakError):
             _LOGGER.debug(

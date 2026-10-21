@@ -85,6 +85,7 @@ class SwitchbotDataUpdateCoordinator(ActiveBluetoothDataUpdateCoordinator[None])
         self, service_info: bluetooth.BluetoothServiceInfoBleak
     ) -> None:
         """Poll the device."""
+        self.device._device = service_info.device
         await self.device.update()
 
     @callback
@@ -106,6 +107,7 @@ class SwitchbotDataUpdateCoordinator(ActiveBluetoothDataUpdateCoordinator[None])
     ) -> None:
         """Handle a Bluetooth event."""
         self.ble_device = service_info.device
+        self.device._device = service_info.device
         if not (
             adv := switchbot.parse_advertisement_data(
                 service_info.device, service_info.advertisement, self.model

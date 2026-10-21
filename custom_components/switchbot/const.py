@@ -147,13 +147,13 @@ CONNECTABLE_SUPPORTED_MODEL_TYPES = {
     SwitchbotModel.RGBIC_NEON_WIRE_ROPE_LIGHT: (
         SupportedModels.RGBIC_NEON_WIRE_ROPE_LIGHT
     ),
+    SwitchbotModel.METER_PRO: SupportedModels.METER_PRO,
+    SwitchbotModel.METER_PRO_CO2: SupportedModels.METER_PRO_CO2,
 }
 
 NON_CONNECTABLE_SUPPORTED_MODEL_TYPES = {
     SwitchbotModel.METER: SupportedModels.METER,
     SwitchbotModel.METER_PLUS: SupportedModels.METER_PLUS,
-    SwitchbotModel.METER_PRO: SupportedModels.METER_PRO,
-    SwitchbotModel.METER_PRO_CO2: SupportedModels.METER_PRO_CO2,
     SwitchbotModel.INDOOR_OUTDOOR_THERMO_HYGROMETER: (
         SupportedModels.INDOOR_OUTDOOR_THERMO_HYGROMETER
     ),

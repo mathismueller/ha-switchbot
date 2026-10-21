@@ -1,11 +1,12 @@
 """Select platform for SwitchBot."""
 
+import contextlib
 from datetime import timedelta
 import logging
 from typing import override
 
 import switchbot
-from switchbot import NightLightState
+from switchbot import MeterProWeatherIcon, NightLightState
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.const import EntityCategory
@@ -42,6 +43,30 @@ INTERVAL_10M = "10m"
 INTERVAL_30M = "30m"
 CO2_INTERVAL_OPTIONS = [INTERVAL_5M, INTERVAL_10M, INTERVAL_30M]
 
+WEATHER_ICON_OPTIONS = [
+    "none",
+    "sunny",
+    "partly_cloudy",
+    "cloudy",
+    "rainy",
+    "pouring",
+    "snowy",
+    "heavy_snow",
+]
+WEATHER_OPTION_TO_ICON: dict[str, MeterProWeatherIcon] = {
+    "none": MeterProWeatherIcon.NONE,
+    "sunny": MeterProWeatherIcon.SUNNY,
+    "partly_cloudy": MeterProWeatherIcon.PARTLY_CLOUDY,
+    "cloudy": MeterProWeatherIcon.CLOUDY,
+    "rainy": MeterProWeatherIcon.RAINY,
+    "pouring": MeterProWeatherIcon.POURING,
+    "snowy": MeterProWeatherIcon.SNOWY,
+    "heavy_snow": MeterProWeatherIcon.HEAVY_SNOW,
+}
+WEATHER_ICON_TO_OPTION: dict[MeterProWeatherIcon, str] = {
+    icon: option for option, icon in WEATHER_OPTION_TO_ICON.items()
+}
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -57,6 +82,7 @@ async def async_setup_entry(
             SwitchBotMeterProDateFormatSelect(coordinator),
             SwitchBotMeterProButtonFunctionSelect(coordinator),
             SwitchBotMeterProTemperatureUpdateIntervalSelect(coordinator),
+            SwitchBotMeterProWeatherConditionSelect(coordinator),
         ]
         if isinstance(coordinator.device, switchbot.SwitchbotMeterProCO2):
             entities.extend(
@@ -266,6 +292,45 @@ class SwitchBotMeterProTemperatureUpdateIntervalSelect(
             self._attr_current_option = INTERVAL_10M
         elif sec == 1800:
             self._attr_current_option = INTERVAL_30M
+
+
+class SwitchBotMeterProWeatherConditionSelect(
+    SwitchbotConnectionPolledEntity, SelectEntity
+):
+    """Select entity to set weather condition icon on Meter Pro."""
+
+    _device: switchbot.SwitchbotMeterPro
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_translation_key = "weather_condition"
+    _attr_options = WEATHER_ICON_OPTIONS
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
+        """Initialize the weather condition select entity."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_unique_id}_weather_condition"
+
+    @exception_handler
+    @override
+    async def async_select_option(self, option: str) -> None:
+        """Change the displayed weather condition icon."""
+        icon = WEATHER_OPTION_TO_ICON[option]
+        await self._device.set_weather(icon=icon)
+        self._attr_current_option = option
+        self.async_write_ha_state()
+
+    @override
+    async def _async_read_value(self) -> None:
+        """Fetch active weather condition icon."""
+        weather = await self._device.get_weather()
+        if icon := weather.get("icon"):
+            if isinstance(icon, MeterProWeatherIcon):
+                self._attr_current_option = WEATHER_ICON_TO_OPTION.get(icon)
+            elif isinstance(icon, int):
+                with contextlib.suppress(ValueError):
+                    self._attr_current_option = WEATHER_ICON_TO_OPTION.get(
+                        MeterProWeatherIcon(icon)
+                    )
 
 
 NIGHT_LIGHT_OFF = "off"

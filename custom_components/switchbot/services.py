@@ -1,5 +1,6 @@
 """Services for the SwitchBot integration."""
 
+import contextlib
 try:
     import probatio as vol
 except ImportError:
@@ -7,6 +8,7 @@ except ImportError:
 
 import switchbot
 
+from homeassistant.components import bluetooth
 from homeassistant.const import ATTR_DEVICE_ID, CONF_SENSOR_TYPE
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ServiceValidationError
@@ -29,9 +31,11 @@ ICON_MAP = {
     "partly_cloudy": 2,
     "cloudy": 3,
     "rainy": 4,
-    "heavy_snow": 5,
+    "pouring": 5,
+    "heavy_rain": 5,
     "snowy": 6,
-    "light_snow": 7,
+    "light_snow": 6,
+    "heavy_snow": 7,
 }
 
 _PASSWORD_VALIDATOR = vol.All(cv.string, cv.matches_regex(r"^\d{6,12}$"))
@@ -115,6 +119,13 @@ async def async_meter_pro_set_weather(call: ServiceCall) -> None:
             translation_domain=DOMAIN,
             translation_key="not_meter_pro_device",
         )
+
+    if call.hass:
+        with contextlib.suppress(Exception):
+            if ble_device := bluetooth.async_ble_device_from_address(
+                call.hass, coordinator.ble_device.address, connectable=True
+            ):
+                coordinator.device._device = ble_device
 
     icon_val = ICON_MAP[icon_str]
     await coordinator.device.set_weather(

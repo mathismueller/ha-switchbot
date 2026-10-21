@@ -14,11 +14,13 @@ This integration is a direct drop-in replacement for the core Home Assistant `sw
 
 ### 1. Switches (`switch`)
 * **Battery Indicator Glyph (`switch.battery_indicator`)**: Toggle whether the physical battery gauge icon appears on the physical LCD display.
+* **Outdoor Sensor Display (`switch.display_data_source`)**: Toggle between Indoor ("IN") and Outdoor ("OUT") sensor display modes on the LCD screen.
 * **Buzzer Alarm Sound (`switch.buzzer_sound`)**: Toggle between audible buzzer alarm and silent screen flashing when environmental thresholds are breached.
 
 ### 2. Selects (`select`)
 * **Time Display Format (`select.time_format`)**: Switch between `12h` (AM/PM) and `24h` clock modes.
 * **Date Display Format (`select.date_format`)**: Switch between Month/Day (`MM/DD`) and Day/Month (`DD/MM`).
+* **Weather Condition Icon (`select.weather_condition`)**: Select the weather forecast icon displayed on the LCD screen (`sunny`, `partly_cloudy`, `cloudy`, `rainy`, `pouring`, `snowy`, `heavy_snow`, `none`; disabled by default).
 * **Top Button Behavior (`select.button_function`)**: Configure the physical hardware button on top of the device:
   * `Refresh only` (default)
   * `Toggle ℃ / ℉`
@@ -52,7 +54,7 @@ This integration is a direct drop-in replacement for the core Home Assistant `sw
   action: switchbot.meter_pro_set_weather
   data:
     device_id: YOUR_METER_PRO_DEVICE_ID
-    icon: rainy # Options: sunny, partly_cloudy, cloudy, rainy, heavy_snow, snowy, light_snow, none
+    icon: rainy # Options: sunny, partly_cloudy, cloudy, rainy, pouring, heavy_rain, snowy, light_snow, heavy_snow, none
     temperature: 14.5
     humidity: 82
   ```
