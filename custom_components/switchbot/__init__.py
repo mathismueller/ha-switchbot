@@ -6,7 +6,15 @@ from typing import Any
 import switchbot
 
 from homeassistant.components import bluetooth
-from homeassistant.components.bluetooth import BluetoothReachabilityIntent
+try:
+    from homeassistant.components.bluetooth import BluetoothReachabilityIntent
+except ImportError:
+    from enum import StrEnum
+    class BluetoothReachabilityIntent(StrEnum):
+        CONNECTION = "connection"
+        PASSIVE_ADVERTISEMENT = "passive_advertisement"
+
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_ADDRESS,
@@ -20,6 +28,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.helpers.typing import ConfigType
+
+
+def _get_reachability_reason(hass: HomeAssistant, address: str, intent: Any) -> str:
+    """Return reachability diagnostics or fallback reason."""
+    if hasattr(bluetooth, "async_address_reachability_diagnostics"):
+        return bluetooth.async_address_reachability_diagnostics(hass, address, intent)
+    return "Device not found"
 
 from .const import (
     CONF_CURTAIN_SPEED,
@@ -377,7 +392,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: SwitchbotConfigEntry) ->
             translation_placeholders={
                 "sensor_type": entry.data[CONF_SENSOR_TYPE],
                 "address": entry.data[CONF_ADDRESS],
-                "reason": bluetooth.async_address_reachability_diagnostics(
+                "reason": _get_reachability_reason(
                     hass,
                     entry.data[CONF_ADDRESS].upper(),
                     BluetoothReachabilityIntent.CONNECTION,
@@ -406,7 +421,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: SwitchbotConfigEntry) ->
             translation_placeholders={
                 "sensor_type": sensor_type,
                 "address": address,
-                "reason": bluetooth.async_address_reachability_diagnostics(
+                "reason": _get_reachability_reason(
                     hass,
                     address.upper(),
                     BluetoothReachabilityIntent.CONNECTION
@@ -524,7 +539,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: SwitchbotConfigEntry) 
                     translation_placeholders={
                         "sensor_type": sensor_type,
                         "address": address,
-                        "reason": bluetooth.async_address_reachability_diagnostics(
+                        "reason": _get_reachability_reason(
                             hass,
                             address.upper(),
                             BluetoothReachabilityIntent.CONNECTION

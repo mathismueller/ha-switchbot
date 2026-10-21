@@ -142,7 +142,7 @@ class SwitchbotConnectionPolledEntity(SwitchbotEntity):
             return
         try:
             await self._async_read_value()
-        except SwitchbotOperationError, BleakError:
+        except (SwitchbotOperationError, BleakError):
             _LOGGER.debug(
                 "Failed to read %s from %s",
                 self.entity_id,

@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Mathis Müller", email = "hello@mathismueller.eu" }
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
     "pySwitchbot",
 ]
@@ -16,6 +16,9 @@ pySwitchbot = { path = "../pySwitchbot", editable = true }
 
 [dependency-groups]
 dev = [
-    "pytest>=9.1.1",
-    "pytest-asyncio>=1.4.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

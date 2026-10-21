@@ -1,87 +1,114 @@
-"""Define fixtures available for all tests."""
+"""Test fixtures for ha-switchbot."""
 
+from unittest.mock import AsyncMock, MagicMock
 import pytest
-from pytest_homeassistant.common import MockConfigEntry
-from pytest_homeassistant.components.bluetooth import generate_ble_device
+from bleak.backends.device import BLEDevice
+import switchbot
+from switchbot import SwitchbotModel
 
-from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
-from homeassistant.components.switchbot.const import (
-    CONF_CURTAIN_SPEED,
-    CONF_ENCRYPTION_KEY,
-    CONF_KEY_ID,
-    CONF_RETRY_COUNT,
-    DEFAULT_CURTAIN_SPEED,
-    DEFAULT_RETRY_COUNT,
-    DOMAIN,
-    SupportedModels,
-)
-from homeassistant.const import CONF_ADDRESS, CONF_NAME, CONF_SENSOR_TYPE
-
-from . import WOSENSORTH_SERVICE_INFO
-
-
-@pytest.fixture(autouse=True)
-def mock_bluetooth(enable_bluetooth: None) -> None:
-    """Auto mock bluetooth."""
+from custom_components.switchbot.coordinator import SwitchbotDataUpdateCoordinator
 
 
 @pytest.fixture
-def meter_service_info() -> BluetoothServiceInfoBleak:
-    """Return a Meter advertisement with a normalized Bluetooth address."""
-    return BluetoothServiceInfoBleak.from_device_and_advertisement_data(
-        generate_ble_device("AA:BB:CC:DD:EE:FF", "WoSensorTH"),
-        WOSENSORTH_SERVICE_INFO.advertisement,
-        source="local",
-        connectable=False,
-        time=0,
+def mock_meter_pro_device():
+    """Create a mock SwitchbotMeterPro device."""
+    dev = MagicMock(spec=switchbot.SwitchbotMeterPro)
+    dev.show_battery_level = AsyncMock()
+    dev.set_time_display_format = AsyncMock()
+    dev.set_date_display_format = AsyncMock()
+    dev.set_button_function = AsyncMock()
+    dev.get_comfortlevel = AsyncMock(
+        return_value=(20.0, 26.0, 40, 60)
+    )
+    dev.set_comfortlevel = AsyncMock()
+    dev.get_temperature_humidity_offsets = AsyncMock(
+        return_value={"temperature_offset": 0.0, "humidity_offset": 0}
+    )
+    dev.set_temperature_humidity_offsets = AsyncMock()
+    dev.set_datetime = AsyncMock()
+    dev.get_datetime = AsyncMock(return_value={"12h_mode": False})
+    dev.set_weather = AsyncMock()
+    return dev
+
+
+@pytest.fixture
+def mock_meter_pro_co2_device(mock_meter_pro_device):
+    """Create a mock SwitchbotMeterProCO2 device."""
+    dev = MagicMock(spec=switchbot.SwitchbotMeterProCO2)
+    dev.show_battery_level = mock_meter_pro_device.show_battery_level
+    dev.set_time_display_format = mock_meter_pro_device.set_time_display_format
+    dev.set_date_display_format = mock_meter_pro_device.set_date_display_format
+    dev.set_button_function = mock_meter_pro_device.set_button_function
+    dev.get_comfortlevel = mock_meter_pro_device.get_comfortlevel
+    dev.set_comfortlevel = mock_meter_pro_device.set_comfortlevel
+    dev.get_temperature_humidity_offsets = mock_meter_pro_device.get_temperature_humidity_offsets
+    dev.set_temperature_humidity_offsets = mock_meter_pro_device.set_temperature_humidity_offsets
+    dev.set_datetime = mock_meter_pro_device.set_datetime
+    dev.get_datetime = mock_meter_pro_device.get_datetime
+    dev.set_weather = mock_meter_pro_device.set_weather
+
+    # CO2 specific
+    dev.set_alert_sound = AsyncMock()
+    dev.set_co2_update_interval = AsyncMock()
+    dev.force_new_co2_measurement = AsyncMock()
+    dev.calibrate_co2_sensor = AsyncMock()
+    dev.get_co2_thresholds = AsyncMock(return_value=(1000, 1400))
+    dev.set_co2_thresholds = AsyncMock()
+    dev.get_time_offset = AsyncMock(return_value=300)
+    dev.set_time_offset = AsyncMock()
+    return dev
+
+
+@pytest.fixture
+def mock_ble_device():
+    """Create a mock BLEDevice."""
+    return BLEDevice(
+        address="AA:BB:CC:DD:EE:FF",
+        name="MeterPro",
+        details={},
     )
 
 
 @pytest.fixture
-def mock_entry_factory():
-    """Fixture to create a MockConfigEntry with a customizable sensor type."""
-
-    def _create_entry(sensor_type: str = "curtain") -> MockConfigEntry:
-        options: dict[str, int] = {CONF_RETRY_COUNT: DEFAULT_RETRY_COUNT}
-        if sensor_type in (SupportedModels.CURTAIN, SupportedModels.CURTAIN_3):
-            options[CONF_CURTAIN_SPEED] = DEFAULT_CURTAIN_SPEED
-        return MockConfigEntry(
-            domain=DOMAIN,
-            data={
-                CONF_ADDRESS: "aa:bb:cc:dd:ee:ff",
-                CONF_NAME: "test-name",
-                CONF_SENSOR_TYPE: sensor_type,
-            },
-            unique_id="aabbccddeeff",
-            version=2,
-            minor_version=1,
-            options=options,
-        )
-
-    return _create_entry
+def mock_meter_pro_coordinator(mock_meter_pro_device, mock_ble_device):
+    """Create a mock SwitchbotDataUpdateCoordinator for Meter Pro."""
+    coord = MagicMock(spec=SwitchbotDataUpdateCoordinator)
+    coord.device = mock_meter_pro_device
+    coord.ble_device = mock_ble_device
+    coord.base_unique_id = "aa:bb:cc:dd:ee:ff"
+    coord.device_name = "Meter Pro Test"
+    coord.model = SwitchbotModel.METER_PRO
+    coord.data = {
+        "battery": 85,
+        "temperature": 21.5,
+        "humidity": 45,
+        "time_mode_24h": True,
+        "display_time_offset": 5,
+    }
+    coord.last_run_success = True
+    coord.async_request_refresh = AsyncMock()
+    coord.config_entry = MagicMock()
+    return coord
 
 
 @pytest.fixture
-def mock_entry_encrypted_factory():
-    """Create a MockConfigEntry with encryption key and sensor type."""
-
-    def _create_entry(sensor_type: str = "lock") -> MockConfigEntry:
-        options: dict[str, int] = {CONF_RETRY_COUNT: DEFAULT_RETRY_COUNT}
-        if sensor_type in (SupportedModels.CURTAIN, SupportedModels.CURTAIN_3):
-            options[CONF_CURTAIN_SPEED] = DEFAULT_CURTAIN_SPEED
-        return MockConfigEntry(
-            domain=DOMAIN,
-            data={
-                CONF_ADDRESS: "aa:bb:cc:dd:ee:ff",
-                CONF_NAME: "test-name",
-                CONF_SENSOR_TYPE: sensor_type,
-                CONF_KEY_ID: "ff",
-                CONF_ENCRYPTION_KEY: "ffffffffffffffffffffffffffffffff",
-            },
-            unique_id="aabbccddeeff",
-            version=2,
-            minor_version=1,
-            options=options,
-        )
-
-    return _create_entry
+def mock_meter_pro_co2_coordinator(mock_meter_pro_co2_device, mock_ble_device):
+    """Create a mock SwitchbotDataUpdateCoordinator for Meter Pro CO2."""
+    coord = MagicMock(spec=SwitchbotDataUpdateCoordinator)
+    coord.device = mock_meter_pro_co2_device
+    coord.ble_device = mock_ble_device
+    coord.base_unique_id = "aa:bb:cc:dd:ee:ff"
+    coord.device_name = "Meter Pro CO2 Test"
+    coord.model = SwitchbotModel.METER_PRO_CO2
+    coord.data = {
+        "battery": 90,
+        "temperature": 22.0,
+        "humidity": 50,
+        "co2": 650,
+        "time_mode_24h": True,
+        "display_time_offset": 0,
+    }
+    coord.last_run_success = True
+    coord.async_request_refresh = AsyncMock()
+    coord.config_entry = MagicMock()
+    return coord

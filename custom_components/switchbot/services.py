@@ -1,6 +1,11 @@
 """Services for the SwitchBot integration."""
 
-import probatio
+try:
+    import probatio as vol
+except ImportError:
+    import voluptuous as vol
+
+import switchbot
 
 from homeassistant.const import ATTR_DEVICE_ID, CONF_SENSOR_TYPE
 from homeassistant.core import HomeAssistant, ServiceCall, callback
@@ -29,26 +34,26 @@ ICON_MAP = {
     "light_snow": 7,
 }
 
-_PASSWORD_VALIDATOR = probatio.All(cv.string, cv.matches_regex(r"^\d{6,12}$"))
+_PASSWORD_VALIDATOR = vol.All(cv.string, cv.matches_regex(r"^\d{6,12}$"))
 
-SCHEMA_ADD_PASSWORD_SERVICE = probatio.Schema(
+SCHEMA_ADD_PASSWORD_SERVICE = vol.Schema(
     {
-        probatio.Required(ATTR_DEVICE_ID): cv.string,
-        probatio.Required(ATTR_PASSWORD): _PASSWORD_VALIDATOR,
+        vol.Required(ATTR_DEVICE_ID): cv.string,
+        vol.Required(ATTR_PASSWORD): _PASSWORD_VALIDATOR,
     },
-    extra=probatio.ALLOW_EXTRA,
+    extra=vol.ALLOW_EXTRA,
 )
 
-SCHEMA_SET_WEATHER_SERVICE = probatio.Schema(
+SCHEMA_SET_WEATHER_SERVICE = vol.Schema(
     {
-        probatio.Required(ATTR_DEVICE_ID): cv.string,
-        probatio.Required(ATTR_ICON): probatio.In(list(ICON_MAP.keys())),
-        probatio.Optional(ATTR_TEMPERATURE): probatio.Coerce(float),
-        probatio.Optional(ATTR_HUMIDITY): probatio.All(
-            probatio.Coerce(int), probatio.Range(min=1, max=99)
+        vol.Required(ATTR_DEVICE_ID): cv.string,
+        vol.Required(ATTR_ICON): vol.In(list(ICON_MAP.keys())),
+        vol.Optional(ATTR_TEMPERATURE): vol.Coerce(float),
+        vol.Optional(ATTR_HUMIDITY): vol.All(
+            vol.Coerce(int), vol.Range(min=1, max=99)
         ),
     },
-    extra=probatio.ALLOW_EXTRA,
+    extra=vol.ALLOW_EXTRA,
 )
 
 

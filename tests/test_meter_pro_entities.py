@@ -1,0 +1,378 @@
+"""Unit tests for SwitchBot Meter Pro and Meter Pro CO2 custom entities."""
+
+from unittest.mock import AsyncMock, MagicMock, patch
+import pytest
+
+from switchbot import SwitchbotModel
+
+from homeassistant.exceptions import ServiceValidationError
+from custom_components.switchbot.button import (
+    SwitchBotMeterProCO2CalibrateButton,
+    SwitchBotMeterProCO2ForceMeasurementButton,
+    SwitchBotMeterProSyncDateTimeButton,
+    async_setup_entry as async_setup_button,
+)
+from custom_components.switchbot.number import (
+    SwitchBotMeterProCO2DisplayTimeOffsetNumber,
+    SwitchBotMeterProCO2ThresholdGoodNumber,
+    SwitchBotMeterProCO2ThresholdModerateNumber,
+    SwitchBotMeterProComfortColdNumber,
+    SwitchBotMeterProComfortDryNumber,
+    SwitchBotMeterProComfortHotNumber,
+    SwitchBotMeterProComfortWetNumber,
+    SwitchBotMeterProHumidityOffsetNumber,
+    SwitchBotMeterProTemperatureOffsetNumber,
+    async_setup_entry as async_setup_number,
+)
+from custom_components.switchbot.select import (
+    SwitchBotMeterProButtonFunctionSelect,
+    SwitchBotMeterProCO2BuzzerVolumeSelect,
+    SwitchBotMeterProCO2TimeFormatSelect,
+    SwitchBotMeterProCO2UpdateIntervalSelect,
+    SwitchBotMeterProDateFormatSelect,
+    async_setup_entry as async_setup_select,
+)
+from custom_components.switchbot.services import (
+    async_meter_pro_set_weather,
+)
+from custom_components.switchbot.switch import (
+    SwitchBotMeterProBatteryIndicatorSwitch,
+    SwitchBotMeterProCO2BuzzerSoundSwitch,
+    async_setup_entry as async_setup_switch,
+)
+
+
+# =========================================================================
+# Switch Platform Tests
+# =========================================================================
+
+async def test_battery_indicator_switch(mock_meter_pro_coordinator):
+    """Test battery indicator toggle switch."""
+    entity = SwitchBotMeterProBatteryIndicatorSwitch(mock_meter_pro_coordinator)
+    assert entity.unique_id == "aa:bb:cc:dd:ee:ff-battery_indicator"
+    assert entity.translation_key == "battery_indicator"
+
+    with patch.object(entity, "async_write_ha_state"):
+        await entity.async_turn_off()
+        mock_meter_pro_coordinator.device.show_battery_level.assert_awaited_once_with(False)
+        assert entity.is_on is False
+
+        await entity.async_turn_on()
+        mock_meter_pro_coordinator.device.show_battery_level.assert_awaited_with(True)
+        assert entity.is_on is True
+
+
+async def test_buzzer_sound_switch(mock_meter_pro_co2_coordinator):
+    """Test buzzer audible alarm switch."""
+    entity = SwitchBotMeterProCO2BuzzerSoundSwitch(mock_meter_pro_co2_coordinator)
+    assert entity.unique_id == "aa:bb:cc:dd:ee:ff-buzzer_sound"
+    assert entity.translation_key == "buzzer_sound"
+
+    with patch.object(entity, "async_write_ha_state"):
+        await entity.async_turn_off()
+        mock_meter_pro_co2_coordinator.device.set_alert_sound.assert_awaited_once_with(
+            sound_on=False, volume=3
+        )
+        assert entity.is_on is False
+
+        await entity.async_turn_on()
+        mock_meter_pro_co2_coordinator.device.set_alert_sound.assert_awaited_with(
+            sound_on=True, volume=3
+        )
+        assert entity.is_on is True
+
+
+async def test_switch_setup_entry(mock_meter_pro_coordinator, mock_meter_pro_co2_coordinator):
+    """Test async_setup_entry for switch platform."""
+    added_entities = []
+    callback = lambda entities: added_entities.extend(entities)
+
+    # Meter Pro (non-CO2): should add battery indicator only
+    entry = MagicMock(runtime_data=mock_meter_pro_coordinator)
+    await async_setup_switch(None, entry, callback)
+    assert any(isinstance(e, SwitchBotMeterProBatteryIndicatorSwitch) for e in added_entities)
+    assert not any(isinstance(e, SwitchBotMeterProCO2BuzzerSoundSwitch) for e in added_entities)
+
+    # Meter Pro CO2: should add both battery indicator and buzzer sound
+    added_entities.clear()
+    entry = MagicMock(runtime_data=mock_meter_pro_co2_coordinator)
+    await async_setup_switch(None, entry, callback)
+    assert any(isinstance(e, SwitchBotMeterProBatteryIndicatorSwitch) for e in added_entities)
+    assert any(isinstance(e, SwitchBotMeterProCO2BuzzerSoundSwitch) for e in added_entities)
+
+
+# =========================================================================
+# Select Platform Tests
+# =========================================================================
+
+async def test_time_format_select(mock_meter_pro_co2_coordinator):
+    """Test time format select entity."""
+    entity = SwitchBotMeterProCO2TimeFormatSelect(mock_meter_pro_co2_coordinator)
+    assert entity.options == ["12h", "24h"]
+
+    await entity._async_read_value()
+    assert entity.current_option == "24h"
+
+    with patch.object(entity, "async_write_ha_state"):
+        await entity.async_select_option("12h")
+        mock_meter_pro_co2_coordinator.device.set_time_display_format.assert_awaited_once_with(True)
+        assert entity.current_option == "12h"
+
+        await entity.async_select_option("24h")
+        mock_meter_pro_co2_coordinator.device.set_time_display_format.assert_awaited_with(False)
+        assert entity.current_option == "24h"
+
+
+async def test_date_format_select(mock_meter_pro_coordinator):
+    """Test date format select entity."""
+    entity = SwitchBotMeterProDateFormatSelect(mock_meter_pro_coordinator)
+    assert entity.options == ["mm_dd", "dd_mm"]
+
+    with patch.object(entity, "async_write_ha_state"):
+        await entity.async_select_option("dd_mm")
+        mock_meter_pro_coordinator.device.set_date_display_format.assert_awaited_once_with(False)
+        assert entity.current_option == "dd_mm"
+
+        await entity.async_select_option("mm_dd")
+        mock_meter_pro_coordinator.device.set_date_display_format.assert_awaited_with(True)
+        assert entity.current_option == "mm_dd"
+
+
+async def test_button_function_select(mock_meter_pro_coordinator):
+    """Test button function select entity."""
+    entity = SwitchBotMeterProButtonFunctionSelect(mock_meter_pro_coordinator)
+    assert entity.options == ["refresh_only", "toggle_unit", "toggle_data_source"]
+
+    with patch.object(entity, "async_write_ha_state"):
+        await entity.async_select_option("toggle_data_source")
+        mock_meter_pro_coordinator.device.set_button_function.assert_awaited_once_with(
+            False, True
+        )
+        assert entity.current_option == "toggle_data_source"
+
+
+async def test_buzzer_volume_select(mock_meter_pro_co2_coordinator):
+    """Test buzzer volume select entity."""
+    entity = SwitchBotMeterProCO2BuzzerVolumeSelect(mock_meter_pro_co2_coordinator)
+    assert entity.options == ["low", "medium", "high"]
+
+    with patch.object(entity, "async_write_ha_state"):
+        await entity.async_select_option("high")
+        mock_meter_pro_co2_coordinator.device.set_alert_sound.assert_awaited_once_with(
+            sound_on=True, volume=4
+        )
+        assert entity.current_option == "high"
+
+
+async def test_co2_update_interval_select(mock_meter_pro_co2_coordinator):
+    """Test CO2 update interval select entity."""
+    entity = SwitchBotMeterProCO2UpdateIntervalSelect(mock_meter_pro_co2_coordinator)
+    assert entity.options == ["5m", "10m", "30m"]
+
+    with patch.object(entity, "async_write_ha_state"):
+        await entity.async_select_option("5m")
+        mock_meter_pro_co2_coordinator.device.set_co2_update_interval.assert_awaited_once_with(300)
+        assert entity.current_option == "5m"
+
+
+async def test_select_setup_entry(mock_meter_pro_coordinator, mock_meter_pro_co2_coordinator):
+    """Test async_setup_entry for select platform."""
+    added_entities = []
+    callback = lambda entities: added_entities.extend(entities)
+
+    entry = MagicMock(runtime_data=mock_meter_pro_co2_coordinator)
+    await async_setup_select(None, entry, callback)
+    types = [type(e) for e in added_entities]
+    assert SwitchBotMeterProCO2TimeFormatSelect in types
+    assert SwitchBotMeterProDateFormatSelect in types
+    assert SwitchBotMeterProButtonFunctionSelect in types
+    assert SwitchBotMeterProCO2BuzzerVolumeSelect in types
+    assert SwitchBotMeterProCO2UpdateIntervalSelect in types
+
+
+# =========================================================================
+# Number Platform Tests
+# =========================================================================
+
+async def test_comfort_range_numbers(mock_meter_pro_coordinator):
+    """Test comfort temperature and humidity threshold numbers."""
+    cold = SwitchBotMeterProComfortColdNumber(mock_meter_pro_coordinator)
+    hot = SwitchBotMeterProComfortHotNumber(mock_meter_pro_coordinator)
+    dry = SwitchBotMeterProComfortDryNumber(mock_meter_pro_coordinator)
+    wet = SwitchBotMeterProComfortWetNumber(mock_meter_pro_coordinator)
+
+    # Read value
+    await cold._async_read_value()
+    assert cold.native_value == 18.0
+    await hot._async_read_value()
+    assert hot.native_value == 26.0
+    await dry._async_read_value()
+    assert dry.native_value == 30
+    await wet._async_read_value()
+    assert wet.native_value == 70
+
+    # Write value
+    with patch.object(cold, "async_write_ha_state"):
+        await cold.async_set_native_value(19.5)
+        mock_meter_pro_coordinator.device.set_comfortlevel.assert_awaited_once_with(
+            cold=19.5,
+            hot=26.0,
+            dry=30,
+            wet=70,
+        )
+
+
+async def test_calibration_offset_numbers(mock_meter_pro_coordinator):
+    """Test temperature and humidity calibration offset numbers."""
+    t_offset = SwitchBotMeterProTemperatureOffsetNumber(mock_meter_pro_coordinator)
+    h_offset = SwitchBotMeterProHumidityOffsetNumber(mock_meter_pro_coordinator)
+
+    await t_offset._async_read_value()
+    assert t_offset.native_value == 0.0
+    await h_offset._async_read_value()
+    assert h_offset.native_value == 0
+
+    with patch.object(t_offset, "async_write_ha_state"):
+        await t_offset.async_set_native_value(1.2)
+        mock_meter_pro_coordinator.device.set_temperature_humidity_offsets.assert_awaited_once_with(
+            temperature_offset=1.2,
+            humidity_offset=0,
+        )
+
+
+async def test_co2_threshold_numbers(mock_meter_pro_co2_coordinator):
+    """Test CO2 air quality target range numbers."""
+    good = SwitchBotMeterProCO2ThresholdGoodNumber(mock_meter_pro_co2_coordinator)
+    moderate = SwitchBotMeterProCO2ThresholdModerateNumber(mock_meter_pro_co2_coordinator)
+
+    await good._async_read_value()
+    assert good.native_value == 1000
+    await moderate._async_read_value()
+    assert moderate.native_value == 1400
+
+    with patch.object(good, "async_write_ha_state"):
+        await good.async_set_native_value(800)
+        mock_meter_pro_co2_coordinator.device.set_co2_thresholds.assert_awaited_once_with(
+            lower=800,
+            upper=1400,
+        )
+
+
+async def test_display_time_offset_number(mock_meter_pro_co2_coordinator):
+    """Test display time offset number."""
+    offset_num = SwitchBotMeterProCO2DisplayTimeOffsetNumber(mock_meter_pro_co2_coordinator)
+    await offset_num._async_read_value()
+    assert offset_num.native_value == 5  # 300 seconds / 60 = 5 minutes
+
+    with patch.object(offset_num, "async_write_ha_state"):
+        await offset_num.async_set_native_value(10)
+        mock_meter_pro_co2_coordinator.device.set_time_offset.assert_awaited_once_with(600)
+        assert offset_num.native_value == 10
+
+
+async def test_number_setup_entry(mock_meter_pro_coordinator, mock_meter_pro_co2_coordinator):
+    """Test async_setup_entry for number platform."""
+    added_entities = []
+    callback = lambda entities: added_entities.extend(entities)
+
+    entry = MagicMock(runtime_data=mock_meter_pro_co2_coordinator)
+    await async_setup_number(None, entry, callback)
+    types = [type(e) for e in added_entities]
+    assert SwitchBotMeterProComfortColdNumber in types
+    assert SwitchBotMeterProComfortHotNumber in types
+    assert SwitchBotMeterProComfortDryNumber in types
+    assert SwitchBotMeterProComfortWetNumber in types
+    assert SwitchBotMeterProTemperatureOffsetNumber in types
+    assert SwitchBotMeterProHumidityOffsetNumber in types
+    assert SwitchBotMeterProCO2ThresholdGoodNumber in types
+    assert SwitchBotMeterProCO2ThresholdModerateNumber in types
+    assert SwitchBotMeterProCO2DisplayTimeOffsetNumber in types
+
+
+# =========================================================================
+# Button Platform Tests
+# =========================================================================
+
+async def test_meter_pro_buttons(mock_meter_pro_co2_coordinator):
+    """Test Meter Pro button entities."""
+    sync_btn = SwitchBotMeterProSyncDateTimeButton(mock_meter_pro_co2_coordinator)
+    force_btn = SwitchBotMeterProCO2ForceMeasurementButton(mock_meter_pro_co2_coordinator)
+    calib_btn = SwitchBotMeterProCO2CalibrateButton(mock_meter_pro_co2_coordinator)
+
+    await sync_btn.async_press()
+    mock_meter_pro_co2_coordinator.device.set_datetime.assert_awaited_once()
+
+    await force_btn.async_press()
+    mock_meter_pro_co2_coordinator.device.force_new_co2_measurement.assert_awaited_once()
+
+    await calib_btn.async_press()
+    mock_meter_pro_co2_coordinator.device.calibrate_co2_sensor.assert_awaited_once()
+
+
+async def test_button_setup_entry(mock_meter_pro_coordinator, mock_meter_pro_co2_coordinator):
+    """Test async_setup_entry for button platform."""
+    added_entities = []
+    callback = lambda entities: added_entities.extend(entities)
+
+    # Meter Pro: sync clock only
+    entry = MagicMock(runtime_data=mock_meter_pro_coordinator)
+    await async_setup_button(None, entry, callback)
+    assert any(isinstance(e, SwitchBotMeterProSyncDateTimeButton) for e in added_entities)
+    assert not any(isinstance(e, SwitchBotMeterProCO2ForceMeasurementButton) for e in added_entities)
+
+    # Meter Pro CO2: sync clock + force CO2 + calibrate CO2
+    added_entities.clear()
+    entry = MagicMock(runtime_data=mock_meter_pro_co2_coordinator)
+    await async_setup_button(None, entry, callback)
+    assert any(isinstance(e, SwitchBotMeterProSyncDateTimeButton) for e in added_entities)
+    assert any(isinstance(e, SwitchBotMeterProCO2ForceMeasurementButton) for e in added_entities)
+    assert any(isinstance(e, SwitchBotMeterProCO2CalibrateButton) for e in added_entities)
+
+
+# =========================================================================
+# Services Tests
+# =========================================================================
+
+async def test_meter_pro_set_weather_service(mock_meter_pro_coordinator):
+    """Test meter_pro_set_weather service call."""
+    call = MagicMock()
+    call.data = {
+        "device_id": "test_device_id",
+        "icon": "sunny",
+        "temperature": 21.5,
+        "humidity": 45,
+    }
+    call.hass = MagicMock()
+
+    mock_entry = MagicMock(runtime_data=mock_meter_pro_coordinator)
+    with patch(
+        "custom_components.switchbot.services._async_get_switchbot_entry_for_device_id",
+        return_value=mock_entry,
+    ):
+        await async_meter_pro_set_weather(call)
+        mock_meter_pro_coordinator.device.set_weather.assert_awaited_once_with(
+            icon=1,
+            temperature_c=21.5,
+            humidity=45,
+        )
+
+
+async def test_meter_pro_set_weather_service_invalid_device():
+    """Test meter_pro_set_weather rejects devices that are not Meter Pro."""
+    call = MagicMock()
+    call.data = {
+        "device_id": "test_device_id",
+        "icon": "rainy",
+    }
+    call.hass = MagicMock()
+
+    non_meter_pro = MagicMock()  # Not a SwitchbotMeterPro
+    mock_coord = MagicMock(device=non_meter_pro)
+    mock_entry = MagicMock(runtime_data=mock_coord)
+
+    with patch(
+        "custom_components.switchbot.services._async_get_switchbot_entry_for_device_id",
+        return_value=mock_entry,
+    ):
+        with pytest.raises(ServiceValidationError):
+            await async_meter_pro_set_weather(call)
