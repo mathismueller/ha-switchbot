@@ -14,8 +14,13 @@ from homeassistant.components.number import (
     NumberEntity,
     NumberEntityDescription,
 )
+try:
+    from homeassistant.const import UnitOfRatio
+    PARTS_PER_MILLION = UnitOfRatio.PARTS_PER_MILLION
+except ImportError:
+    from homeassistant.const import CONCENTRATION_PARTS_PER_MILLION as PARTS_PER_MILLION
+
 from homeassistant.const import (
-    CONCENTRATION_PARTS_PER_MILLION,
     PERCENTAGE,
     EntityCategory,
     UnitOfTemperature,
@@ -389,7 +394,7 @@ class SwitchBotMeterProCO2ThresholdGoodNumber(
     _attr_native_min_value = 500
     _attr_native_max_value = 1800
     _attr_native_step = 100
-    _attr_native_unit_of_measurement = CONCENTRATION_PARTS_PER_MILLION
+    _attr_native_unit_of_measurement = PARTS_PER_MILLION
 
     def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
         """Initialize CO2 good threshold number."""
@@ -425,7 +430,7 @@ class SwitchBotMeterProCO2ThresholdModerateNumber(
     _attr_native_min_value = 600
     _attr_native_max_value = 1900
     _attr_native_step = 100
-    _attr_native_unit_of_measurement = CONCENTRATION_PARTS_PER_MILLION
+    _attr_native_unit_of_measurement = PARTS_PER_MILLION
 
     def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
         """Initialize CO2 moderate threshold number."""
