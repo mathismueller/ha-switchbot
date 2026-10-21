@@ -25,7 +25,6 @@ from custom_components.switchbot.number import (
     async_setup_entry as async_setup_number,
 )
 from custom_components.switchbot.select import (
-    SwitchBotMeterProButtonFunctionSelect,
     SwitchBotMeterProCO2BuzzerVolumeSelect,
     SwitchBotMeterProCO2TimeFormatSelect,
     SwitchBotMeterProCO2UpdateIntervalSelect,
@@ -41,6 +40,8 @@ from custom_components.switchbot.services import (
 )
 from custom_components.switchbot.switch import (
     SwitchBotMeterProBatteryIndicatorSwitch,
+    SwitchBotMeterProButtonToggleDataSourceSwitch,
+    SwitchBotMeterProButtonToggleUnitSwitch,
     SwitchBotMeterProCO2BuzzerSoundSwitch,
     SwitchBotMeterProDisplayDataSourceSwitch,
     async_setup_entry as async_setup_switch,
@@ -113,19 +114,23 @@ async def test_switch_setup_entry(mock_meter_pro_coordinator, mock_meter_pro_co2
     added_entities = []
     callback = lambda entities: added_entities.extend(entities)
 
-    # Meter Pro (non-CO2): should add battery indicator and display data source
+    # Meter Pro (non-CO2): should add battery indicator, display data source, and button switches
     entry = MagicMock(runtime_data=mock_meter_pro_coordinator)
     await async_setup_switch(None, entry, callback)
     assert any(isinstance(e, SwitchBotMeterProBatteryIndicatorSwitch) for e in added_entities)
     assert any(isinstance(e, SwitchBotMeterProDisplayDataSourceSwitch) for e in added_entities)
+    assert any(isinstance(e, SwitchBotMeterProButtonToggleUnitSwitch) for e in added_entities)
+    assert any(isinstance(e, SwitchBotMeterProButtonToggleDataSourceSwitch) for e in added_entities)
     assert not any(isinstance(e, SwitchBotMeterProCO2BuzzerSoundSwitch) for e in added_entities)
 
-    # Meter Pro CO2: should add battery indicator, display data source, and buzzer sound
+    # Meter Pro CO2: should add battery indicator, display data source, button switches, and buzzer sound
     added_entities.clear()
     entry = MagicMock(runtime_data=mock_meter_pro_co2_coordinator)
     await async_setup_switch(None, entry, callback)
     assert any(isinstance(e, SwitchBotMeterProBatteryIndicatorSwitch) for e in added_entities)
     assert any(isinstance(e, SwitchBotMeterProDisplayDataSourceSwitch) for e in added_entities)
+    assert any(isinstance(e, SwitchBotMeterProButtonToggleUnitSwitch) for e in added_entities)
+    assert any(isinstance(e, SwitchBotMeterProButtonToggleDataSourceSwitch) for e in added_entities)
     assert any(isinstance(e, SwitchBotMeterProCO2BuzzerSoundSwitch) for e in added_entities)
 
 
@@ -166,17 +171,28 @@ async def test_date_format_select(mock_meter_pro_coordinator):
         assert entity.current_option == "mm_dd"
 
 
-async def test_button_function_select(mock_meter_pro_coordinator):
-    """Test button function select entity."""
-    entity = SwitchBotMeterProButtonFunctionSelect(mock_meter_pro_coordinator)
-    assert entity.options == ["refresh_only", "toggle_unit", "toggle_data_source"]
+async def test_button_toggle_switches(mock_meter_pro_coordinator):
+    """Test button toggle switches."""
+    unit_switch = SwitchBotMeterProButtonToggleUnitSwitch(mock_meter_pro_coordinator)
+    source_switch = SwitchBotMeterProButtonToggleDataSourceSwitch(mock_meter_pro_coordinator)
 
-    with patch.object(entity, "async_write_ha_state"):
-        await entity.async_select_option("toggle_data_source")
-        mock_meter_pro_coordinator.device.set_button_function.assert_awaited_once_with(
-            False, True
-        )
-        assert entity.current_option == "toggle_data_source"
+    with patch.object(unit_switch, "async_write_ha_state"):
+        await unit_switch.async_turn_on()
+        mock_meter_pro_coordinator.device.set_button_toggle_unit.assert_awaited_once_with(True)
+        assert unit_switch.is_on is True
+
+        await unit_switch.async_turn_off()
+        mock_meter_pro_coordinator.device.set_button_toggle_unit.assert_awaited_with(False)
+        assert unit_switch.is_on is False
+
+    with patch.object(source_switch, "async_write_ha_state"):
+        await source_switch.async_turn_on()
+        mock_meter_pro_coordinator.device.set_button_toggle_data_source.assert_awaited_once_with(True)
+        assert source_switch.is_on is True
+
+        await source_switch.async_turn_off()
+        mock_meter_pro_coordinator.device.set_button_toggle_data_source.assert_awaited_with(False)
+        assert source_switch.is_on is False
 
 
 async def test_buzzer_volume_select(mock_meter_pro_co2_coordinator):
@@ -247,7 +263,6 @@ async def test_select_setup_entry(mock_meter_pro_coordinator, mock_meter_pro_co2
     types = [type(e) for e in added_entities]
     assert SwitchBotMeterProCO2TimeFormatSelect in types
     assert SwitchBotMeterProDateFormatSelect in types
-    assert SwitchBotMeterProButtonFunctionSelect in types
     assert SwitchBotMeterProTemperatureUpdateIntervalSelect in types
     assert SwitchBotMeterProWeatherConditionSelect in types
     assert SwitchBotMeterProCO2BuzzerVolumeSelect in types
@@ -497,7 +512,8 @@ async def test_entity_registry_enabled_default_rules(mock_meter_pro_co2_coordina
     assert SwitchBotMeterProHumidityOffsetNumber(coord).entity_registry_enabled_default is True
     assert SwitchBotMeterProCO2TimeFormatSelect(coord).entity_registry_enabled_default is True
     assert SwitchBotMeterProDateFormatSelect(coord).entity_registry_enabled_default is True
-    assert SwitchBotMeterProButtonFunctionSelect(coord).entity_registry_enabled_default is True
+    assert SwitchBotMeterProButtonToggleUnitSwitch(coord).entity_registry_enabled_default is True
+    assert SwitchBotMeterProButtonToggleDataSourceSwitch(coord).entity_registry_enabled_default is True
     assert SwitchBotMeterProCO2BuzzerVolumeSelect(coord).entity_registry_enabled_default is True
     assert SwitchBotMeterProCO2UpdateIntervalSelect(coord).entity_registry_enabled_default is True
     assert SwitchBotMeterProTemperatureUpdateIntervalSelect(coord).entity_registry_enabled_default is True

@@ -28,11 +28,6 @@ DATE_FORMAT_MM_DD = "mm_dd"
 DATE_FORMAT_DD_MM = "dd_mm"
 DATE_FORMAT_OPTIONS = [DATE_FORMAT_MM_DD, DATE_FORMAT_DD_MM]
 
-BUTTON_FN_REFRESH = "refresh_only"
-BUTTON_FN_UNIT = "toggle_unit"
-BUTTON_FN_DATA_SOURCE = "toggle_data_source"
-BUTTON_FUNCTION_OPTIONS = [BUTTON_FN_REFRESH, BUTTON_FN_UNIT, BUTTON_FN_DATA_SOURCE]
-
 BUZZER_VOL_LOW = "low"
 BUZZER_VOL_MEDIUM = "medium"
 BUZZER_VOL_HIGH = "high"
@@ -80,7 +75,6 @@ async def async_setup_entry(
         entities: list[SelectEntity] = [
             SwitchBotMeterProCO2TimeFormatSelect(coordinator),
             SwitchBotMeterProDateFormatSelect(coordinator),
-            SwitchBotMeterProButtonFunctionSelect(coordinator),
             SwitchBotMeterProTemperatureUpdateIntervalSelect(coordinator),
             SwitchBotMeterProWeatherConditionSelect(coordinator),
         ]
@@ -157,38 +151,6 @@ class SwitchBotMeterProDateFormatSelect(SwitchbotConnectionPolledEntity, SelectE
         """Default date format."""
         if self._attr_current_option is None:
             self._attr_current_option = DATE_FORMAT_MM_DD
-
-
-class SwitchBotMeterProButtonFunctionSelect(
-    SwitchbotConnectionPolledEntity, SelectEntity
-):
-    """Select entity to set the top physical button behavior on Meter Pro."""
-
-    _device: switchbot.SwitchbotMeterPro
-    _attr_entity_category = EntityCategory.CONFIG
-    _attr_translation_key = "button_function"
-    _attr_options = BUTTON_FUNCTION_OPTIONS
-
-    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
-        """Initialize the select entity."""
-        super().__init__(coordinator)
-        self._attr_unique_id = f"{coordinator.base_unique_id}_button_function"
-
-    @exception_handler
-    @override
-    async def async_select_option(self, option: str) -> None:
-        """Change the top physical button behavior."""
-        change_unit = option == BUTTON_FN_UNIT
-        change_data_source = option == BUTTON_FN_DATA_SOURCE
-        await self._device.set_button_function(change_unit, change_data_source)
-        self._attr_current_option = option
-        self.async_write_ha_state()
-
-    @override
-    async def _async_read_value(self) -> None:
-        """Default button function."""
-        if self._attr_current_option is None:
-            self._attr_current_option = BUTTON_FN_REFRESH
 
 
 class SwitchBotMeterProCO2BuzzerVolumeSelect(

@@ -402,14 +402,6 @@
       }
     },
     "select": {
-      "button_function": {
-        "name": "Top button function",
-        "state": {
-          "refresh_only": "Refresh data only",
-          "toggle_data_source": "Toggle Indoor / Outdoor",
-          "toggle_unit": "Toggle \u00b0C / \u00b0F"
-        }
-      },
       "buzzer_volume": {
         "name": "Buzzer alarm volume",
         "state": {
@@ -526,6 +518,12 @@
       },
       "display_data_source": {
         "name": "Outdoor sensor display"
+      },
+      "button_toggle_unit": {
+        "name": "Top button toggle \u00b0C / \u00b0F"
+      },
+      "button_toggle_data_source": {
+        "name": "Top button toggle indoor / outdoor"
       },
       "buzzer_sound": {
         "name": "Buzzer alarm sound"
