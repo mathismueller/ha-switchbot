@@ -79,5 +79,27 @@ This integration is a direct drop-in replacement for the core Home Assistant `sw
 
 ---
 
+## 🤝 Acknowledgments & Credits
+
+This project builds directly upon the incredible foundational work of the Home Assistant and SwitchBot open-source communities:
+
+* **[Home Assistant Core](https://github.com/home-assistant/core)**:
+  This custom component is derived from the official `switchbot` core integration. Huge credit to the original integration authors and code owners:
+  * Daniel Hjelseth Høyer ([@danielhiversen](https://github.com/danielhiversen))
+  * [@RenierM26](https://github.com/RenierM26)
+  * [@murtas](https://github.com/murtas)
+  * [@Eloston](https://github.com/Eloston)
+  * [@dsypniewski](https://github.com/dsypniewski)
+  * [@zerzhang](https://github.com/zerzhang)
+  * And all Home Assistant community contributors.
+
+* **[pySwitchbot](https://github.com/sblibs/pySwitchbot)**:
+  All low-level BLE communication, packet parsing, and GATT command execution rely on `pySwitchbot`, originally authored by Daniel Hjelseth Høyer and maintained by the SwitchBot library contributors. Our Meter Pro and Meter Pro CO2 protocol implementations extend this library directly.
+
+---
+
 ## 📄 License
-Apache License 2.0. Based on the Home Assistant Core `switchbot` integration.
+
+This project is licensed under the **Apache License 2.0** — in full compatibility and continuity with Home Assistant Core. See the [LICENSE](LICENSE) file for complete details.
+
+Copyright © 2013-2026 The Home Assistant Authors and `ha-switchbot` contributors.
