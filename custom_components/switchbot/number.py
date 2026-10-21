@@ -14,11 +14,7 @@ from homeassistant.components.number import (
     NumberEntity,
     NumberEntityDescription,
 )
-try:
-    from homeassistant.const import UnitOfRatio
-    PARTS_PER_MILLION = UnitOfRatio.PARTS_PER_MILLION
-except ImportError:
-    from homeassistant.const import CONCENTRATION_PARTS_PER_MILLION as PARTS_PER_MILLION
+PARTS_PER_MILLION: str = "ppm"
 
 from homeassistant.const import (
     PERCENTAGE,
