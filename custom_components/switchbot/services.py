@@ -19,11 +19,12 @@ from .coordinator import SwitchbotConfigEntry, SwitchbotDataUpdateCoordinator
 
 SERVICE_ADD_PASSWORD = "add_password"
 SERVICE_SET_WEATHER = "meter_pro_set_weather"
+SERVICE_SET_EXTERNAL_SENSOR_MAC = "meter_pro_set_external_sensor_mac"
 
 ATTR_PASSWORD = "password"
 ATTR_ICON = "icon"
-ATTR_TEMPERATURE = "temperature"
-ATTR_HUMIDITY = "humidity"
+ATTR_MAC_ADDRESS = "mac_address"
+ATTR_SLOT = "slot"
 
 ICON_MAP = {
     "none": 0,
@@ -52,9 +53,16 @@ SCHEMA_SET_WEATHER_SERVICE = vol.Schema(
     {
         vol.Required(ATTR_DEVICE_ID): cv.string,
         vol.Required(ATTR_ICON): vol.In(list(ICON_MAP.keys())),
-        vol.Optional(ATTR_TEMPERATURE): vol.Coerce(float),
-        vol.Optional(ATTR_HUMIDITY): vol.All(
-            vol.Coerce(int), vol.Range(min=1, max=99)
+    },
+    extra=vol.ALLOW_EXTRA,
+)
+
+SCHEMA_SET_EXTERNAL_SENSOR_MAC_SERVICE = vol.Schema(
+    {
+        vol.Required(ATTR_DEVICE_ID): cv.string,
+        vol.Required(ATTR_MAC_ADDRESS): cv.string,
+        vol.Optional(ATTR_SLOT, default=1): vol.All(
+            vol.Coerce(int), vol.In([1, 2])
         ),
     },
     extra=vol.ALLOW_EXTRA,
@@ -106,11 +114,9 @@ async def async_add_password(call: ServiceCall) -> None:
 
 
 async def async_meter_pro_set_weather(call: ServiceCall) -> None:
-    """Push weather icon and optional external temperature/humidity to Meter Pro."""
+    """Push weather condition icon to Meter Pro."""
     device_id: str = call.data[ATTR_DEVICE_ID]
     icon_str: str = call.data[ATTR_ICON]
-    temp = call.data.get(ATTR_TEMPERATURE)
-    hum = call.data.get(ATTR_HUMIDITY)
 
     entry = _async_get_switchbot_entry_for_device_id(call.hass, device_id)
     coordinator = entry.runtime_data
@@ -130,8 +136,33 @@ async def async_meter_pro_set_weather(call: ServiceCall) -> None:
     icon_val = ICON_MAP[icon_str]
     await coordinator.device.set_weather(
         icon=icon_val,
-        temperature_c=temp,
-        humidity=hum,
+    )
+
+
+async def async_meter_pro_set_external_sensor_mac(call: ServiceCall) -> None:
+    """Configure external sensor MAC address slot on Meter Pro."""
+    device_id: str = call.data[ATTR_DEVICE_ID]
+    mac_address: str = call.data[ATTR_MAC_ADDRESS]
+    slot: int = call.data.get(ATTR_SLOT, 1)
+
+    entry = _async_get_switchbot_entry_for_device_id(call.hass, device_id)
+    coordinator = entry.runtime_data
+    if not isinstance(coordinator.device, switchbot.SwitchbotMeterPro):
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="not_meter_pro_device",
+        )
+
+    if call.hass:
+        with contextlib.suppress(Exception):
+            if ble_device := bluetooth.async_ble_device_from_address(
+                call.hass, coordinator.ble_device.address, connectable=True
+            ):
+                coordinator.device._device = ble_device
+
+    await coordinator.device.set_external_sensor_mac(
+        mac_address=mac_address,
+        slot=slot,
     )
 
 
@@ -149,4 +180,10 @@ def async_setup_services(hass: HomeAssistant) -> None:
         SERVICE_SET_WEATHER,
         async_meter_pro_set_weather,
         schema=SCHEMA_SET_WEATHER_SERVICE,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_EXTERNAL_SENSOR_MAC,
+        async_meter_pro_set_external_sensor_mac,
+        schema=SCHEMA_SET_EXTERNAL_SENSOR_MAC_SERVICE,
     )

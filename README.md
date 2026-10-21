@@ -49,14 +49,20 @@ This integration is a direct drop-in replacement for the core Home Assistant `sw
 * **Calibrate CO2 Sensor (`button.calibrate_co2`)**: Start the 5-minute automated CO2 sensor recalibration routine (place device in ventilated outdoor air first).
 
 ### 5. Actions / Services (`service`)
-* **`switchbot.meter_pro_set_weather`**: Push current local weather forecast and external temperature/humidity to the Meter Pro LCD header.
+* **`switchbot.meter_pro_set_weather`**: Push current local weather forecast condition icon to the Meter Pro LCD header.
   ```yaml
   action: switchbot.meter_pro_set_weather
   data:
     device_id: YOUR_METER_PRO_DEVICE_ID
     icon: rainy # Options: sunny, partly_cloudy, cloudy, rainy, pouring, heavy_rain, snowy, light_snow, heavy_snow, none
-    temperature: 14.5
-    humidity: 82
+  ```
+* **`switchbot.meter_pro_set_external_sensor_mac`**: Pair an external sensor MAC address (e.g. SwitchBot Outdoor Meter or emulated ESP32 beacon) to the Meter Pro hardware display.
+  ```yaml
+  action: switchbot.meter_pro_set_external_sensor_mac
+  data:
+    device_id: YOUR_METER_PRO_DEVICE_ID
+    mac_address: "AA:BB:CC:DD:EE:FF" # Or "00:00:00:00:00:00" to clear
+    slot: 1 # Optional: 1 (primary display) or 2 (secondary)
   ```
 
 ---

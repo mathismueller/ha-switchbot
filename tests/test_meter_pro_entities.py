@@ -36,6 +36,7 @@ from custom_components.switchbot.select import (
 )
 from custom_components.switchbot.services import (
     ICON_MAP,
+    async_meter_pro_set_external_sensor_mac,
     async_meter_pro_set_weather,
 )
 from custom_components.switchbot.switch import (
@@ -402,8 +403,6 @@ async def test_meter_pro_set_weather_service(mock_meter_pro_coordinator):
     call.data = {
         "device_id": "test_device_id",
         "icon": "sunny",
-        "temperature": 21.5,
-        "humidity": 45,
     }
     call.hass = MagicMock()
 
@@ -415,8 +414,6 @@ async def test_meter_pro_set_weather_service(mock_meter_pro_coordinator):
         await async_meter_pro_set_weather(call)
         mock_meter_pro_coordinator.device.set_weather.assert_awaited_once_with(
             icon=1,
-            temperature_c=21.5,
-            humidity=45,
         )
 
 
@@ -453,6 +450,28 @@ async def test_meter_pro_weather_icon_mappings():
     assert ICON_MAP["partly_cloudy"] == 2
     assert ICON_MAP["sunny"] == 1
     assert ICON_MAP["none"] == 0
+
+
+async def test_meter_pro_set_external_sensor_mac_service(mock_meter_pro_coordinator):
+    """Test meter_pro_set_external_sensor_mac service call."""
+    call = MagicMock()
+    call.data = {
+        "device_id": "test_device_id",
+        "mac_address": "AA:BB:CC:DD:EE:FF",
+        "slot": 1,
+    }
+    call.hass = MagicMock()
+
+    mock_entry = MagicMock(runtime_data=mock_meter_pro_coordinator)
+    with patch(
+        "custom_components.switchbot.services._async_get_switchbot_entry_for_device_id",
+        return_value=mock_entry,
+    ):
+        await async_meter_pro_set_external_sensor_mac(call)
+        mock_meter_pro_coordinator.device.set_external_sensor_mac.assert_awaited_once_with(
+            mac_address="AA:BB:CC:DD:EE:FF",
+            slot=1,
+        )
 
 
 async def test_entity_registry_enabled_default_rules(mock_meter_pro_co2_coordinator):

@@ -14,8 +14,8 @@ add_password:
           type: password
 
 meter_pro_set_weather:
-  name: "Meter Pro: Set Weather & Outdoor Display"
-  description: "Pushes weather forecast icon and external temperature and humidity to a SwitchBot Meter Pro or Meter Pro CO2."
+  name: "Meter Pro: Set Weather Condition Icon"
+  description: "Pushes weather forecast icon to a SwitchBot Meter Pro or Meter Pro CO2 display."
   fields:
     device_id:
       required: true
@@ -37,19 +37,32 @@ meter_pro_set_weather:
             - "light_snow"
             - "heavy_snow"
             - "none"
-    temperature:
-      required: false
+
+meter_pro_set_external_sensor_mac:
+  name: "Meter Pro: Set External Sensor MAC"
+  description: "Pairs an external sensor (e.g. SwitchBot Outdoor Meter or emulated ESP32 beacon) to the Meter Pro hardware display."
+  fields:
+    device_id:
+      required: true
       selector:
-        number:
-          min: -40
-          max: 80
-          step: 0.1
-          unit_of_measurement: "°C"
-    humidity:
-      required: false
+        device:
+          integration: switchbot
+    mac_address:
+      name: "Sensor MAC Address"
+      description: "The BLE MAC address of the outdoor sensor (e.g. 'AA:BB:CC:DD:EE:FF', or '00:00:00:00:00:00' to clear)."
+      required: true
+      example: "AA:BB:CC:DD:EE:FF"
       selector:
-        number:
-          min: 1
-          max: 99
-          step: 1
-          unit_of_measurement: "%"
+        text:
+    slot:
+      name: "Profile Slot"
+      description: "The profile slot (1 or 2). Slot 1 is the primary display slot."
+      required: false
+      default: 1
+      selector:
+        select:
+          options:
+            - label: "Slot 1 (Primary)"
+              value: "1"
+            - label: "Slot 2 (Secondary)"
+              value: "2"
