@@ -30,6 +30,7 @@ from custom_components.switchbot.select import (
     SwitchBotMeterProCO2TimeFormatSelect,
     SwitchBotMeterProCO2UpdateIntervalSelect,
     SwitchBotMeterProDateFormatSelect,
+    SwitchBotMeterProTemperatureUpdateIntervalSelect,
     async_setup_entry as async_setup_select,
 )
 from custom_components.switchbot.services import (
@@ -175,6 +176,17 @@ async def test_co2_update_interval_select(mock_meter_pro_co2_coordinator):
         assert entity.current_option == "5m"
 
 
+async def test_temperature_update_interval_select(mock_meter_pro_coordinator):
+    """Test temperature update interval select entity."""
+    entity = SwitchBotMeterProTemperatureUpdateIntervalSelect(mock_meter_pro_coordinator)
+    assert entity.options == ["5m", "10m", "30m"]
+
+    with patch.object(entity, "async_write_ha_state"):
+        await entity.async_select_option("10m")
+        mock_meter_pro_coordinator.device.set_temperature_update_interval.assert_awaited_once_with(600)
+        assert entity.current_option == "10m"
+
+
 async def test_select_setup_entry(mock_meter_pro_coordinator, mock_meter_pro_co2_coordinator):
     """Test async_setup_entry for select platform."""
     added_entities = []
@@ -186,6 +198,7 @@ async def test_select_setup_entry(mock_meter_pro_coordinator, mock_meter_pro_co2
     assert SwitchBotMeterProCO2TimeFormatSelect in types
     assert SwitchBotMeterProDateFormatSelect in types
     assert SwitchBotMeterProButtonFunctionSelect in types
+    assert SwitchBotMeterProTemperatureUpdateIntervalSelect in types
     assert SwitchBotMeterProCO2BuzzerVolumeSelect in types
     assert SwitchBotMeterProCO2UpdateIntervalSelect in types
 

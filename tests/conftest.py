@@ -28,6 +28,8 @@ def mock_meter_pro_device():
     dev.set_datetime = AsyncMock()
     dev.get_datetime = AsyncMock(return_value={"12h_mode": False})
     dev.set_weather = AsyncMock()
+    dev.set_temperature_update_interval = AsyncMock()
+    dev.get_temperature_update_interval = AsyncMock(return_value=300)
     return dev
 
 
@@ -46,6 +48,8 @@ def mock_meter_pro_co2_device(mock_meter_pro_device):
     dev.set_datetime = mock_meter_pro_device.set_datetime
     dev.get_datetime = mock_meter_pro_device.get_datetime
     dev.set_weather = mock_meter_pro_device.set_weather
+    dev.set_temperature_update_interval = mock_meter_pro_device.set_temperature_update_interval
+    dev.get_temperature_update_interval = mock_meter_pro_device.get_temperature_update_interval
 
     # CO2 specific
     dev.set_alert_sound = AsyncMock()

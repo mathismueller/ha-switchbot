@@ -13,6 +13,7 @@ from homeassistant.components.number import (
     NumberDeviceClass,
     NumberEntity,
     NumberEntityDescription,
+    NumberMode,
 )
 PARTS_PER_MILLION: str = "ppm"
 
@@ -77,6 +78,7 @@ class SwitchBotMeterProCO2DisplayTimeOffsetNumber(
     _attr_device_class = NumberDeviceClass.DURATION
     _attr_entity_category = EntityCategory.CONFIG
     _attr_translation_key = "display_time_offset"
+    _attr_mode = NumberMode.BOX
     _attr_native_min_value = -_MAX_TIME_OFFSET_MINUTES
     _attr_native_max_value = _MAX_TIME_OFFSET_MINUTES
     _attr_native_step = 1.0
@@ -172,6 +174,7 @@ class SwitchBotMeterProComfortColdNumber(SwitchbotConnectionPolledEntity, Number
     _attr_device_class = NumberDeviceClass.TEMPERATURE
     _attr_entity_category = EntityCategory.CONFIG
     _attr_translation_key = "comfort_cold"
+    _attr_mode = NumberMode.BOX
     _attr_native_min_value = -20.0
     _attr_native_max_value = 79.5
     _attr_native_step = 0.5
@@ -207,6 +210,7 @@ class SwitchBotMeterProComfortHotNumber(SwitchbotConnectionPolledEntity, NumberE
     _attr_device_class = NumberDeviceClass.TEMPERATURE
     _attr_entity_category = EntityCategory.CONFIG
     _attr_translation_key = "comfort_hot"
+    _attr_mode = NumberMode.BOX
     _attr_native_min_value = -19.5
     _attr_native_max_value = 80.0
     _attr_native_step = 0.5
@@ -242,6 +246,7 @@ class SwitchBotMeterProComfortDryNumber(SwitchbotConnectionPolledEntity, NumberE
     _attr_device_class = NumberDeviceClass.HUMIDITY
     _attr_entity_category = EntityCategory.CONFIG
     _attr_translation_key = "comfort_dry"
+    _attr_mode = NumberMode.BOX
     _attr_native_min_value = 1
     _attr_native_max_value = 98
     _attr_native_step = 1
@@ -277,6 +282,7 @@ class SwitchBotMeterProComfortWetNumber(SwitchbotConnectionPolledEntity, NumberE
     _attr_device_class = NumberDeviceClass.HUMIDITY
     _attr_entity_category = EntityCategory.CONFIG
     _attr_translation_key = "comfort_wet"
+    _attr_mode = NumberMode.BOX
     _attr_native_min_value = 2
     _attr_native_max_value = 99
     _attr_native_step = 1
@@ -314,6 +320,7 @@ class SwitchBotMeterProTemperatureOffsetNumber(
     _attr_device_class = NumberDeviceClass.TEMPERATURE
     _attr_entity_category = EntityCategory.CONFIG
     _attr_translation_key = "temperature_offset"
+    _attr_mode = NumberMode.BOX
     _attr_native_min_value = -10.0
     _attr_native_max_value = 10.0
     _attr_native_step = 0.1
@@ -329,8 +336,10 @@ class SwitchBotMeterProTemperatureOffsetNumber(
     @override
     async def async_set_native_value(self, value: float) -> None:
         """Set temperature offset."""
+        current_offsets = await self._device.get_temperature_humidity_offsets()
+        hum = current_offsets.get("humidity_offset", 0)
         await self._device.set_temperature_humidity_offsets(
-            temperature_offset=value, humidity_offset=0
+            temperature_offset=value, humidity_offset=hum
         )
         self._attr_native_value = value
         self.async_write_ha_state()
@@ -351,6 +360,7 @@ class SwitchBotMeterProHumidityOffsetNumber(
     _attr_device_class = NumberDeviceClass.HUMIDITY
     _attr_entity_category = EntityCategory.CONFIG
     _attr_translation_key = "humidity_offset"
+    _attr_mode = NumberMode.BOX
     _attr_native_min_value = -30
     _attr_native_max_value = 30
     _attr_native_step = 1
@@ -366,8 +376,10 @@ class SwitchBotMeterProHumidityOffsetNumber(
     @override
     async def async_set_native_value(self, value: float) -> None:
         """Set humidity offset."""
+        current_offsets = await self._device.get_temperature_humidity_offsets()
+        temp = current_offsets.get("temperature_offset", 0.0)
         await self._device.set_temperature_humidity_offsets(
-            temperature_offset=0.0, humidity_offset=int(value)
+            temperature_offset=temp, humidity_offset=int(value)
         )
         self._attr_native_value = int(value)
         self.async_write_ha_state()
@@ -387,6 +399,7 @@ class SwitchBotMeterProCO2ThresholdGoodNumber(
     _device: switchbot.SwitchbotMeterProCO2
     _attr_entity_category = EntityCategory.CONFIG
     _attr_translation_key = "co2_threshold_good"
+    _attr_mode = NumberMode.BOX
     _attr_native_min_value = 500
     _attr_native_max_value = 1800
     _attr_native_step = 100
@@ -402,9 +415,11 @@ class SwitchBotMeterProCO2ThresholdGoodNumber(
     @override
     async def async_set_native_value(self, value: float) -> None:
         """Set CO2 good threshold."""
+        moderate = getattr(self._device, "_co2_threshold_moderate", 1400)
         await self._device.set_co2_thresholds(
-            lower=int(value), upper=1400
+            lower=int(value), upper=moderate
         )
+        self._device._co2_threshold_good = int(value)
         self._attr_native_value = int(value)
         self.async_write_ha_state()
 
@@ -423,6 +438,7 @@ class SwitchBotMeterProCO2ThresholdModerateNumber(
     _device: switchbot.SwitchbotMeterProCO2
     _attr_entity_category = EntityCategory.CONFIG
     _attr_translation_key = "co2_threshold_moderate"
+    _attr_mode = NumberMode.BOX
     _attr_native_min_value = 600
     _attr_native_max_value = 1900
     _attr_native_step = 100
@@ -438,9 +454,11 @@ class SwitchBotMeterProCO2ThresholdModerateNumber(
     @override
     async def async_set_native_value(self, value: float) -> None:
         """Set CO2 moderate threshold."""
+        good = getattr(self._device, "_co2_threshold_good", 1000)
         await self._device.set_co2_thresholds(
-            lower=1000, upper=int(value)
+            lower=good, upper=int(value)
         )
+        self._device._co2_threshold_moderate = int(value)
         self._attr_native_value = int(value)
         self.async_write_ha_state()
 

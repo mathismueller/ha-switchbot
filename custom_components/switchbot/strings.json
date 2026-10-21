@@ -426,6 +426,14 @@
           "5m": "5 minutes"
         }
       },
+      "temperature_update_interval": {
+        "name": "Temperature measurement interval",
+        "state": {
+          "10m": "10 minutes",
+          "30m": "30 minutes",
+          "5m": "5 minutes"
+        }
+      },
       "date_format": {
         "name": "Date format",
         "state": {

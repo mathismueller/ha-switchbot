@@ -56,6 +56,7 @@ async def async_setup_entry(
             SwitchBotMeterProCO2TimeFormatSelect(coordinator),
             SwitchBotMeterProDateFormatSelect(coordinator),
             SwitchBotMeterProButtonFunctionSelect(coordinator),
+            SwitchBotMeterProTemperatureUpdateIntervalSelect(coordinator),
         ]
         if isinstance(coordinator.device, switchbot.SwitchbotMeterProCO2):
             entities.extend(
@@ -223,6 +224,42 @@ class SwitchBotMeterProCO2UpdateIntervalSelect(
     async def _async_read_value(self) -> None:
         """Fetch active CO2 update interval."""
         sec = await self._device.get_co2_update_interval()
+        if sec == 300:
+            self._attr_current_option = INTERVAL_5M
+        elif sec == 600:
+            self._attr_current_option = INTERVAL_10M
+        elif sec == 1800:
+            self._attr_current_option = INTERVAL_30M
+
+
+class SwitchBotMeterProTemperatureUpdateIntervalSelect(
+    SwitchbotConnectionPolledEntity, SelectEntity
+):
+    """Select entity to set temperature and humidity update interval on Meter Pro."""
+
+    _device: switchbot.SwitchbotMeterPro
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_translation_key = "temperature_update_interval"
+    _attr_options = CO2_INTERVAL_OPTIONS
+
+    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
+        """Initialize the select entity."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_unique_id}_temperature_update_interval"
+
+    @exception_handler
+    @override
+    async def async_select_option(self, option: str) -> None:
+        """Change the temperature measurement update interval."""
+        sec_map = {INTERVAL_5M: 300, INTERVAL_10M: 600, INTERVAL_30M: 1800}
+        await self._device.set_temperature_update_interval(sec_map[option])
+        self._attr_current_option = option
+        self.async_write_ha_state()
+
+    @override
+    async def _async_read_value(self) -> None:
+        """Fetch active temperature update interval."""
+        sec = await self._device.get_temperature_update_interval()
         if sec == 300:
             self._attr_current_option = INTERVAL_5M
         elif sec == 600:
