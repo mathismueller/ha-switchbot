@@ -9,6 +9,8 @@ from homeassistant.exceptions import ServiceValidationError
 from custom_components.switchbot.button import (
     SwitchBotMeterProCO2CalibrateButton,
     SwitchBotMeterProCO2ForceMeasurementButton,
+    SwitchBotMeterProCO2SilenceAlarmButton,
+    SwitchBotMeterProRefreshButton,
     SwitchBotMeterProSyncDateTimeButton,
     async_setup_entry as async_setup_button,
 )
@@ -86,6 +88,10 @@ async def test_buzzer_sound_switch(mock_meter_pro_co2_coordinator):
             sound_on=True, volume=3
         )
         assert entity.is_on is True
+
+    await entity._async_read_value()
+    mock_meter_pro_co2_coordinator.device.get_alert_sound.assert_awaited_once()
+    assert entity.is_on is True
 
 
 async def test_display_data_source_switch(mock_meter_pro_coordinator):
@@ -175,6 +181,11 @@ async def test_button_toggle_switches(mock_meter_pro_coordinator):
     """Test button toggle switches."""
     unit_switch = SwitchBotMeterProButtonToggleUnitSwitch(mock_meter_pro_coordinator)
     source_switch = SwitchBotMeterProButtonToggleDataSourceSwitch(mock_meter_pro_coordinator)
+
+    await unit_switch._async_read_value()
+    mock_meter_pro_coordinator.device.get_button_function.assert_awaited_once()
+
+    await source_switch._async_read_value()
 
     with patch.object(unit_switch, "async_write_ha_state"):
         await unit_switch.async_turn_on()
@@ -375,17 +386,26 @@ async def test_number_setup_entry(mock_meter_pro_coordinator, mock_meter_pro_co2
 async def test_meter_pro_buttons(mock_meter_pro_co2_coordinator):
     """Test Meter Pro button entities."""
     sync_btn = SwitchBotMeterProSyncDateTimeButton(mock_meter_pro_co2_coordinator)
+    refresh_btn = SwitchBotMeterProRefreshButton(mock_meter_pro_co2_coordinator)
     force_btn = SwitchBotMeterProCO2ForceMeasurementButton(mock_meter_pro_co2_coordinator)
     calib_btn = SwitchBotMeterProCO2CalibrateButton(mock_meter_pro_co2_coordinator)
+    silence_btn = SwitchBotMeterProCO2SilenceAlarmButton(mock_meter_pro_co2_coordinator)
 
     await sync_btn.async_press()
     mock_meter_pro_co2_coordinator.device.set_datetime.assert_awaited_once()
 
+    await refresh_btn.async_press()
+    mock_meter_pro_co2_coordinator.device.refresh_measurements.assert_awaited_once()
+
+    mock_meter_pro_co2_coordinator.device.force_new_co2_measurement.return_value = 550
     await force_btn.async_press()
-    mock_meter_pro_co2_coordinator.device.force_new_co2_measurement.assert_awaited_once()
+    mock_meter_pro_co2_coordinator.device.force_new_co2_measurement.assert_awaited_once_with(readback=True)
 
     await calib_btn.async_press()
     mock_meter_pro_co2_coordinator.device.calibrate_co2_sensor.assert_awaited_once()
+
+    await silence_btn.async_press()
+    mock_meter_pro_co2_coordinator.device.silence_alarm.assert_awaited_once()
 
 
 async def test_button_setup_entry(mock_meter_pro_coordinator, mock_meter_pro_co2_coordinator):
@@ -393,19 +413,22 @@ async def test_button_setup_entry(mock_meter_pro_coordinator, mock_meter_pro_co2
     added_entities = []
     callback = lambda entities: added_entities.extend(entities)
 
-    # Meter Pro: sync clock only
+    # Meter Pro: sync clock + refresh
     entry = MagicMock(runtime_data=mock_meter_pro_coordinator)
     await async_setup_button(None, entry, callback)
     assert any(isinstance(e, SwitchBotMeterProSyncDateTimeButton) for e in added_entities)
+    assert any(isinstance(e, SwitchBotMeterProRefreshButton) for e in added_entities)
     assert not any(isinstance(e, SwitchBotMeterProCO2ForceMeasurementButton) for e in added_entities)
 
-    # Meter Pro CO2: sync clock + force CO2 + calibrate CO2
+    # Meter Pro CO2: sync clock + refresh + force CO2 + calibrate CO2 + silence alarm
     added_entities.clear()
     entry = MagicMock(runtime_data=mock_meter_pro_co2_coordinator)
     await async_setup_button(None, entry, callback)
     assert any(isinstance(e, SwitchBotMeterProSyncDateTimeButton) for e in added_entities)
+    assert any(isinstance(e, SwitchBotMeterProRefreshButton) for e in added_entities)
     assert any(isinstance(e, SwitchBotMeterProCO2ForceMeasurementButton) for e in added_entities)
     assert any(isinstance(e, SwitchBotMeterProCO2CalibrateButton) for e in added_entities)
+    assert any(isinstance(e, SwitchBotMeterProCO2SilenceAlarmButton) for e in added_entities)
 
 
 # =========================================================================

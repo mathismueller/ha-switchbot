@@ -123,6 +123,12 @@
       "force_co2_measurement": {
         "name": "Force CO2 measurement"
       },
+      "refresh_measurements": {
+        "name": "Refresh measurements"
+      },
+      "silence_alarm": {
+        "name": "Silence alarm"
+      },
       "calibrate_co2": {
         "name": "Calibrate CO2 sensor"
       },

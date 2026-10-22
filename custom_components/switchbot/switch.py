@@ -21,7 +21,12 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import AIRPURIFIER_BASIC_MODELS, AIRPURIFIER_TABLE_MODELS, DOMAIN
 from .coordinator import SwitchbotConfigEntry, SwitchbotDataUpdateCoordinator
-from .entity import SwitchbotEntity, SwitchbotSwitchedEntity, exception_handler
+from .entity import (
+    SwitchbotConnectionPolledEntity,
+    SwitchbotEntity,
+    SwitchbotSwitchedEntity,
+    exception_handler,
+)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -388,7 +393,7 @@ class SwitchBotMeterProBatteryIndicatorSwitch(
 
 
 class SwitchBotMeterProCO2BuzzerSoundSwitch(
-    SwitchbotEntity, SwitchEntity, RestoreEntity
+    SwitchbotConnectionPolledEntity, SwitchEntity, RestoreEntity
 ):
     """Representation of a Switchbot Meter Pro CO2 buzzer audible alarm switch."""
 
@@ -408,6 +413,12 @@ class SwitchBotMeterProCO2BuzzerSoundSwitch(
         await super().async_added_to_hass()
         if (last_state := await self.async_get_last_state()) is not None:
             self._attr_is_on = last_state.state == STATE_ON
+
+    @override
+    async def _async_read_value(self) -> None:
+        """Fetch alert sound status from device."""
+        sound = await self._device.get_alert_sound()
+        self._attr_is_on = sound["sound_on"]
 
     @exception_handler
     @override
@@ -466,7 +477,7 @@ class SwitchBotMeterProDisplayDataSourceSwitch(
 
 
 class SwitchBotMeterProButtonToggleUnitSwitch(
-    SwitchbotEntity, SwitchEntity, RestoreEntity
+    SwitchbotConnectionPolledEntity, SwitchEntity, RestoreEntity
 ):
     """Switch to enable/disable toggling temperature unit via top physical button."""
 
@@ -488,6 +499,13 @@ class SwitchBotMeterProButtonToggleUnitSwitch(
             self._attr_is_on = last_state.state == STATE_ON
             self._device._button_change_unit = self._attr_is_on
 
+    @override
+    async def _async_read_value(self) -> None:
+        """Fetch button function behavior from device."""
+        btn = await self._device.get_button_function()
+        self._attr_is_on = btn["change_unit"]
+        self._device._button_change_unit = self._attr_is_on
+
     @exception_handler
     @override
     async def async_turn_on(self, **kwargs: Any) -> None:
@@ -506,7 +524,7 @@ class SwitchBotMeterProButtonToggleUnitSwitch(
 
 
 class SwitchBotMeterProButtonToggleDataSourceSwitch(
-    SwitchbotEntity, SwitchEntity, RestoreEntity
+    SwitchbotConnectionPolledEntity, SwitchEntity, RestoreEntity
 ):
     """Switch to enable/disable toggling data source via top physical button."""
 
@@ -527,6 +545,13 @@ class SwitchBotMeterProButtonToggleDataSourceSwitch(
         if (last_state := await self.async_get_last_state()) is not None:
             self._attr_is_on = last_state.state == STATE_ON
             self._device._button_change_data_source = self._attr_is_on
+
+    @override
+    async def _async_read_value(self) -> None:
+        """Fetch button function behavior from device."""
+        btn = await self._device.get_button_function()
+        self._attr_is_on = btn["change_data_source"]
+        self._device._button_change_data_source = self._attr_is_on
 
     @exception_handler
     @override

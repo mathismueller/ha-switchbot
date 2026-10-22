@@ -23,16 +23,14 @@ This integration is a direct drop-in replacement for the core Home Assistant `sw
 ### 1. Switches (`switch`)
 * **Battery Indicator Glyph (`switch.battery_indicator`)**: Toggle whether the physical battery gauge icon appears on the physical LCD display.
 * **Outdoor Sensor Display (`switch.display_data_source`)**: Toggle between Indoor ("IN") and Outdoor ("OUT") sensor display modes on the LCD screen.
+* **Toggle ℃ / ℉ on Button (`switch.button_toggle_unit`)**: Enable or disable switching temperature unit when pressing the top physical button.
+* **Toggle Data Source on Button (`switch.button_toggle_data_source`)**: Enable or disable switching indoor/outdoor data source when pressing the top physical button.
 * **Buzzer Alarm Sound (`switch.buzzer_sound`)**: Toggle between audible buzzer alarm and silent screen flashing when environmental thresholds are breached.
 
 ### 2. Selects (`select`)
 * **Time Display Format (`select.time_format`)**: Switch between `12h` (AM/PM) and `24h` clock modes.
 * **Date Display Format (`select.date_format`)**: Switch between Month/Day (`MM/DD`) and Day/Month (`DD/MM`).
 * **Weather Condition Icon (`select.weather_condition`)**: Select the weather forecast icon displayed on the LCD screen (`sunny`, `partly_cloudy`, `cloudy`, `rainy`, `pouring`, `snowy`, `heavy_snow`, `none`; disabled by default).
-* **Top Button Behavior (`select.button_function`)**: Configure the physical hardware button on top of the device:
-  * `Refresh only` (default)
-  * `Toggle ℃ / ℉`
-  * `Toggle Indoor / Outdoor Data Source`
 * **Buzzer Volume (`select.buzzer_volume`)**: Set alarm volume (`Low`, `Medium`, `High`).
 * **CO2 Measurement Interval (`select.co2_update_interval`)**: Configure background sampling interval (`5m`, `10m`, `30m`).
 
@@ -53,7 +51,9 @@ This integration is a direct drop-in replacement for the core Home Assistant `sw
 
 ### 4. Buttons (`button`)
 * **Sync Date and Time (`button.sync_datetime`)**: Immediately synchronize the hardware real-time clock to Home Assistant UTC time.
-* **Force CO2 Measurement (`button.force_co2_measurement`)**: Trigger an immediate, fresh NDIR CO2 sensor measurement regardless of the sleep interval.
+* **Refresh Measurements (`button.refresh_measurements`)**: Immediately trigger an environmental sensor measurement refresh on the hardware (simulates top button press).
+* **Force CO2 Measurement (`button.force_co2_measurement`)**: Trigger an immediate, fresh NDIR CO2 sensor measurement regardless of the sleep interval, polling the result and updating Home Assistant sensor state.
+* **Silence Alarm (`button.silence_alarm`)**: Mute the active alarm buzzer sound and stop screen flashing.
 * **Calibrate CO2 Sensor (`button.calibrate_co2`)**: Start the 5-minute automated CO2 sensor recalibration routine (place device in ventilated outdoor air first).
 
 ### 5. Actions / Services (`service`)

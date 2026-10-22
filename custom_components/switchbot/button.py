@@ -45,12 +45,18 @@ async def async_setup_entry(
         )
 
     if isinstance(coordinator.device, switchbot.SwitchbotMeterPro):
-        entities.append(SwitchBotMeterProSyncDateTimeButton(coordinator))
+        entities.extend(
+            [
+                SwitchBotMeterProSyncDateTimeButton(coordinator),
+                SwitchBotMeterProRefreshButton(coordinator),
+            ]
+        )
         if isinstance(coordinator.device, switchbot.SwitchbotMeterProCO2):
             entities.extend(
                 [
                     SwitchBotMeterProCO2ForceMeasurementButton(coordinator),
                     SwitchBotMeterProCO2CalibrateButton(coordinator),
+                    SwitchBotMeterProCO2SilenceAlarmButton(coordinator),
                 ]
             )
 
@@ -212,6 +218,31 @@ class HalfLockButton(SwitchbotEntity, ButtonEntity):
         await self._device.half_lock()
 
 
+class SwitchBotMeterProRefreshButton(SwitchbotEntity, ButtonEntity):
+    """Button to trigger an immediate environmental measurement refresh."""
+
+    _device: switchbot.SwitchbotMeterPro
+    _attr_translation_key = "refresh_measurements"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
+        """Initialize refresh measurements button."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_unique_id}_refresh_measurements"
+
+    @exception_handler
+    @override
+    async def async_press(self) -> None:
+        """Trigger environmental measurement refresh."""
+        if self.hass:
+            with contextlib.suppress(Exception):
+                if ble_device := bluetooth.async_ble_device_from_address(
+                    self.hass, self._address, connectable=True
+                ):
+                    self._device._device = ble_device
+        await self._device.refresh_measurements()
+
+
 class SwitchBotMeterProCO2ForceMeasurementButton(SwitchbotEntity, ButtonEntity):
     """Button to force immediate CO2 measurement."""
 
@@ -227,14 +258,17 @@ class SwitchBotMeterProCO2ForceMeasurementButton(SwitchbotEntity, ButtonEntity):
     @exception_handler
     @override
     async def async_press(self) -> None:
-        """Force a new CO2 measurement."""
+        """Force a new CO2 measurement and read back the updated value."""
         if self.hass:
             with contextlib.suppress(Exception):
                 if ble_device := bluetooth.async_ble_device_from_address(
                     self.hass, self._address, connectable=True
                 ):
                     self._device._device = ble_device
-        await self._device.force_new_co2_measurement()
+        ppm = await self._device.force_new_co2_measurement(readback=True)
+        if ppm is not None:
+            self._device._override_state({"co2": ppm})
+            self.coordinator.async_update_listeners()
 
 
 class SwitchBotMeterProCO2CalibrateButton(SwitchbotEntity, ButtonEntity):
@@ -260,3 +294,28 @@ class SwitchBotMeterProCO2CalibrateButton(SwitchbotEntity, ButtonEntity):
                 ):
                     self._device._device = ble_device
         await self._device.calibrate_co2_sensor()
+
+
+class SwitchBotMeterProCO2SilenceAlarmButton(SwitchbotEntity, ButtonEntity):
+    """Button to silence active CO2 buzzer sound and screen flashing."""
+
+    _device: switchbot.SwitchbotMeterProCO2
+    _attr_translation_key = "silence_alarm"
+    _attr_entity_category = EntityCategory.CONFIG
+
+    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
+        """Initialize silence alarm button."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_unique_id}_silence_alarm"
+
+    @exception_handler
+    @override
+    async def async_press(self) -> None:
+        """Silence active alarm."""
+        if self.hass:
+            with contextlib.suppress(Exception):
+                if ble_device := bluetooth.async_ble_device_from_address(
+                    self.hass, self._address, connectable=True
+                ):
+                    self._device._device = ble_device
+        await self._device.silence_alarm()

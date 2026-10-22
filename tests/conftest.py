@@ -30,6 +30,12 @@ def mock_meter_pro_device():
     dev.set_weather = AsyncMock()
     dev.set_temperature_update_interval = AsyncMock()
     dev.get_temperature_update_interval = AsyncMock(return_value=300)
+    dev.refresh_measurements = AsyncMock()
+    dev.get_button_function = AsyncMock(
+        return_value={"change_unit": False, "change_data_source": False}
+    )
+    dev.set_button_toggle_unit = AsyncMock()
+    dev.set_button_toggle_data_source = AsyncMock()
     return dev
 
 
@@ -50,9 +56,17 @@ def mock_meter_pro_co2_device(mock_meter_pro_device):
     dev.set_weather = mock_meter_pro_device.set_weather
     dev.set_temperature_update_interval = mock_meter_pro_device.set_temperature_update_interval
     dev.get_temperature_update_interval = mock_meter_pro_device.get_temperature_update_interval
+    dev.refresh_measurements = mock_meter_pro_device.refresh_measurements
+    dev.get_button_function = mock_meter_pro_device.get_button_function
+    dev.set_button_toggle_unit = mock_meter_pro_device.set_button_toggle_unit
+    dev.set_button_toggle_data_source = mock_meter_pro_device.set_button_toggle_data_source
 
     # CO2 specific
     dev.set_alert_sound = AsyncMock()
+    dev.get_alert_sound = AsyncMock(
+        return_value={"volume": 3, "sound_on": True, "flash_on": True}
+    )
+    dev.silence_alarm = AsyncMock()
     dev.set_co2_update_interval = AsyncMock()
     dev.force_new_co2_measurement = AsyncMock()
     dev.calibrate_co2_sensor = AsyncMock()
