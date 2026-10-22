@@ -74,7 +74,8 @@ This integration is a direct drop-in replacement for the core Home Assistant `sw
   data:
     device_id: YOUR_METER_PRO_DEVICE_ID
     mac_address: "AA:BB:CC:DD:EE:FF" # Or "00:00:00:00:00:00" to clear
-    slot: 1 # Optional: 1 (primary display) or 2 (secondary) 
+    slot: 1 # Optional: 1 (primary display) or 2 (secondary)
+    switch_display: true # Optional (default: true): automatically switches screen to OUT on pair, or IN on clear
   ```
 
 ---
@@ -100,10 +101,11 @@ The SwitchBot Meter Pro (and CO2) can display outdoor temperature and humidity r
 If you do not own a physical SwitchBot Outdoor Meter, **you can emulate one using any ESP32 running ESPHome** (alongside an ESPHome BLE Proxy on the same device). This allows you to broadcast any Home Assistant temperature and humidity entities as SwitchBot Outdoor Meter advertisement beacons.:
 
 1. **Flash ESPHome**: Use the provided [ESPHome SwitchBot Beacon Template](examples/esphome_switchbot_outdoor_meter.yaml). It subscribes to any Home Assistant temperature and humidity entities and broadcasts them as SwitchBot Outdoor Meter advertisement beacons using your ESP32's BLE MAC address.
-2. **Pair the MAC Address**: Call the `switchbot.meter_pro_set_external_sensor_mac` action in Home Assistant with your ESP32's Bluetooth MAC address (Slot 1).
-3. **Toggle on Display**: Press the top physical button on your Meter Pro CO2 to switch the LCD between the internal room sensor and your external ESP32 broadcast! You may need to configure this button function 
+2. **Pair the MAC Address**: Call the `switchbot.meter_pro_set_external_sensor_mac` action in Home Assistant with your ESP32's Bluetooth MAC address (Slot 1). The display will automatically switch from `IN` to `OUT` as instant visual confirmation!
+3. **Control Display Source**: You can toggle between internal sensor readings (`IN`) and external readings (`OUT`) programmatically via the `switch.display_data_source` entity, or physically by pressing the top hardware button (configurable via `switch.button_toggle_data_source`).
 
-Note: On the Meter Pro CO2, the `OUT/IN` badge is independent of the external sensor's status and has to be toggled manually. The Meter Pro can show the external sensor readings alongside its own internal sensor readings while the Meter Pro CO2 has the ability to toggle between the internal and external sensor readings on the LCD display.
+> [!NOTE]
+> When `switch.button_toggle_data_source` is enabled, pressing the physical top button changes the live display in RAM. However, the hardware firmware enforces its persistent profile (`070103`) whenever button settings are written. To permanently switch the screen back to internal readings, turn off `switch.display_data_source` or clear the MAC pairing.
 
 ## Acknowledgments & Credits
 
