@@ -1,16 +1,24 @@
 # SwitchBot Bluetooth (Enhanced) for Home Assistant
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz)
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.1%2B-blue.svg)](https://www.home-assistant.io/)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.10%2B-blue.svg)](https://www.home-assistant.io/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 
-An enhanced custom component for **SwitchBot Bluetooth** devices in Home Assistant, featuring complete reverse-engineered control and entity support for the **SwitchBot Meter Pro** (`WoTHP`) and **SwitchBot Meter Pro CO2** (`WoTHPc`).
+## Disclaimer
+
+This project was implemented in large parts with the use of coding agents and has not been fully reviewed. 
+
+SwitchBot, Inc. is not affiliated with this project and does not provide support for it. Use at your own risk.
+
+## Features
+
+An enhanced custom component for **SwitchBot Bluetooth** devices in Home Assistant, featuring complete reverse-engineered control and entity support for the **SwitchBot Meter Pro** (`WoTHP`) and **SwitchBot Meter Pro CO2** (`WoTHPc`). Limited testing was performed on the `WoTHPc` variant. 
 
 This integration is a direct drop-in replacement for the core Home Assistant `switchbot` integration. It seamlessly integrates with your existing devices without needing re-pairing, and works natively through **ESPHome Active Bluetooth Proxies** and local Bluetooth adapters.
 
 ---
 
-## 🌟 Enhanced Capabilities for Meter Pro & Meter Pro CO2
+## Full List of Enhancements for Meter Pro & Meter Pro CO2
 
 ### 1. Switches (`switch`)
 * **Battery Indicator Glyph (`switch.battery_indicator`)**: Toggle whether the physical battery gauge icon appears on the physical LCD display.
@@ -56,30 +64,18 @@ This integration is a direct drop-in replacement for the core Home Assistant `sw
     device_id: YOUR_METER_PRO_DEVICE_ID
     icon: rainy # Options: sunny, partly_cloudy, cloudy, rainy, pouring, heavy_rain, snowy, light_snow, heavy_snow, none
   ```
-* **`switchbot.meter_pro_set_external_sensor_mac`**: Pair an external sensor MAC address (e.g. SwitchBot Outdoor Meter or emulated ESP32 beacon) to the Meter Pro hardware display.
+* **`switchbot.meter_pro_set_external_sensor_mac`**: Pair an external sensor MAC address (e.g. SwitchBot Outdoor Meter or emulated ESP32 beacon) to the Meter Pro hardware display. See the [ESPHome External Sensor Emulation](#external--outdoor-sensor-emulation-via-esphome) section below for details.
   ```yaml
   action: switchbot.meter_pro_set_external_sensor_mac
   data:
     device_id: YOUR_METER_PRO_DEVICE_ID
     mac_address: "AA:BB:CC:DD:EE:FF" # Or "00:00:00:00:00:00" to clear
-    slot: 1 # Optional: 1 (primary display) or 2 (secondary)
+    slot: 1 # Optional: 1 (primary display) or 2 (secondary) 
   ```
 
 ---
 
-## 🌡️ External / Outdoor Sensor Emulation via ESPHome
-
-The SwitchBot Meter Pro can display outdoor temperature and humidity readings received directly from an external SwitchBot Outdoor Meter via local BLE broadcasts (`0x0969` / `WoSensorTH`).
-
-If you do not own a physical SwitchBot Outdoor Meter, **you can emulate one using any ESP32 running ESPHome** (even on an existing ESPHome Bluetooth proxy node):
-
-1. **Flash ESPHome**: Use the provided [ESPHome SwitchBot Beacon Template](examples/esphome_switchbot_outdoor_meter.yaml). It subscribes to any Home Assistant temperature and humidity entities and broadcasts them as SwitchBot Outdoor Meter advertisement beacons using your ESP32's BLE MAC address.
-2. **Pair the MAC Address**: Call the `switchbot.meter_pro_set_external_sensor_mac` action in Home Assistant with your ESP32's Bluetooth MAC address (Slot 1).
-3. **Toggle on Display**: Press the top physical button on your Meter Pro to switch the LCD between the internal room sensor and your external ESP32 broadcast! (Note: The `OUT` badge with the wave icon will appear when viewing the external readings).
-
----
-
-## 📦 Installation
+## Installation
 
 ### Via HACS (Recommended)
 1. Open Home Assistant $\rightarrow$ **HACS** $\rightarrow$ **Integrations**.
@@ -93,15 +89,21 @@ If you do not own a physical SwitchBot Outdoor Meter, **you can emulate one usin
 
 ---
 
-## 📡 Bluetooth Proxy & Gateway Compatibility
-* **ESPHome Bluetooth Proxies**: Fully supported with `active: true` configured on your ESP32 proxies. Home Assistant communicates with the device bidirectionally over GATT anywhere within range of your ESPHome nodes.
-* **No Official Hub Required**: All configuration, weather push, comfort triggers, buzzer controls, and calibration run 100% locally over Bluetooth without requiring a SwitchBot Hub or cloud connection.
+## External / Outdoor Sensor Emulation via ESPHome
 
----
+The SwitchBot Meter Pro (and CO2) can display outdoor temperature and humidity readings received directly from an external SwitchBot Outdoor Meter via local BLE broadcasts (`0x0969` / `WoSensorTH`).
 
-## 🤝 Acknowledgments & Credits
+If you do not own a physical SwitchBot Outdoor Meter, **you can emulate one using any ESP32 running ESPHome** (alongside an ESPHome BLE Proxy on the same device). This allows you to broadcast any Home Assistant temperature and humidity entities as SwitchBot Outdoor Meter advertisement beacons.:
 
-This project builds directly upon the incredible foundational work of the Home Assistant and SwitchBot open-source communities:
+1. **Flash ESPHome**: Use the provided [ESPHome SwitchBot Beacon Template](examples/esphome_switchbot_outdoor_meter.yaml). It subscribes to any Home Assistant temperature and humidity entities and broadcasts them as SwitchBot Outdoor Meter advertisement beacons using your ESP32's BLE MAC address.
+2. **Pair the MAC Address**: Call the `switchbot.meter_pro_set_external_sensor_mac` action in Home Assistant with your ESP32's Bluetooth MAC address (Slot 1).
+3. **Toggle on Display**: Press the top physical button on your Meter Pro CO2 to switch the LCD between the internal room sensor and your external ESP32 broadcast! You may need to configure this button function 
+
+Note: On the Meter Pro CO2, the `OUT/IN` badge is independent of the external sensor's status and has to be toggled manually. The Meter Pro can show the external sensor readings alongside its own internal sensor readings while the Meter Pro CO2 has the ability to toggle between the internal and external sensor readings on the LCD display.
+
+## Acknowledgments & Credits
+
+This project builds directly upon the foundational work of the Home Assistant and SwitchBot open-source communities:
 
 * **[Home Assistant Core](https://github.com/home-assistant/core)**:
   This custom component is derived from the official `switchbot` core integration. Huge credit to the original integration authors and code owners:
@@ -111,15 +113,18 @@ This project builds directly upon the incredible foundational work of the Home A
   * [@Eloston](https://github.com/Eloston)
   * [@dsypniewski](https://github.com/dsypniewski)
   * [@zerzhang](https://github.com/zerzhang)
-  * And all Home Assistant community contributors.
+  * And all Home Assistant contributors.
 
 * **[pySwitchbot](https://github.com/sblibs/pySwitchbot)**:
-  All low-level BLE communication, packet parsing, and GATT command execution rely on `pySwitchbot`, originally authored by Daniel Hjelseth Høyer and maintained by the SwitchBot library contributors. Our Meter Pro and Meter Pro CO2 protocol implementations extend this library directly.
+  All low-level BLE communication, packet parsing, and GATT command execution rely on `pySwitchbot`, originally authored by Daniel Hjelseth Høyer. Our Meter Pro and Meter Pro CO2 protocol implementations extend this library directly. 
+
+  The extension is based on the following community pull requests that were not yet merged into the main `pySwitchbot` repository: 
+  * [Issue #581](https://github.com/sblibs/pySwitchbot/issues/581) by [@meuxx](https://github.com/meuxx) implementing the weather icon functionality.
+  
+  * [Issue #559](https://github.com/sblibs/pySwitchbot/pull/559) and [Issue #430](https://github.com/sblibs/pySwitchbot/pull/430) by [@ahrmn](https://github.com/ahrmn) implementing most of the Meter Pro and Meter Pro CO2 functionality, including the calibration, the buzzer, comfort thresholds, and more. 
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **Apache License 2.0** — in full compatibility and continuity with Home Assistant Core. See the [LICENSE](LICENSE) file for complete details.
-
-Copyright © 2013-2026 The Home Assistant Authors and `ha-switchbot` contributors.
+This project is licensed under the **Apache License 2.0** — in continuity with Home Assistant Core. See the [LICENSE](LICENSE) file for complete details.
