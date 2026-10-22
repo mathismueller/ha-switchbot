@@ -90,6 +90,7 @@ PLATFORMS_BY_TYPE = {
     ],
     SupportedModels.INDOOR_OUTDOOR_THERMO_HYGROMETER.value: [Platform.SENSOR],
     SupportedModels.METER_PRO_CO2.value: [
+        Platform.BINARY_SENSOR,
         Platform.BUTTON,
         Platform.NUMBER,
         Platform.SELECT,
