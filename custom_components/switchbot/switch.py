@@ -438,7 +438,7 @@ class SwitchBotMeterProCO2BuzzerSoundSwitch(
 
 
 class SwitchBotMeterProDisplayDataSourceSwitch(
-    SwitchbotEntity, SwitchEntity, RestoreEntity
+    SwitchbotConnectionPolledEntity, SwitchEntity, RestoreEntity
 ):
     """Representation of a Switchbot Meter Pro IN/OUT sensor toggle switch."""
 
@@ -458,6 +458,11 @@ class SwitchBotMeterProDisplayDataSourceSwitch(
         await super().async_added_to_hass()
         if (last_state := await self.async_get_last_state()) is not None:
             self._attr_is_on = last_state.state == STATE_ON
+
+    @override
+    async def _async_read_value(self) -> None:
+        """Fetch current display data source (outdoor/indoor) from device."""
+        self._attr_is_on = await self._device.get_display_data_source()
 
     @exception_handler
     @override

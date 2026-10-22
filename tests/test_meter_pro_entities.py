@@ -109,6 +109,14 @@ async def test_display_data_source_switch(mock_meter_pro_coordinator):
     assert entity.translation_key == "display_data_source"
     assert entity.is_on is False
 
+    mock_meter_pro_coordinator.device.get_display_data_source = AsyncMock(return_value=True)
+    await entity._async_read_value()
+    assert entity.is_on is True
+
+    mock_meter_pro_coordinator.device.get_display_data_source.return_value = False
+    await entity._async_read_value()
+    assert entity.is_on is False
+
     with patch.object(entity, "async_write_ha_state"):
         await entity.async_turn_on()
         mock_meter_pro_coordinator.device.set_display_data_source.assert_awaited_once_with(
@@ -517,6 +525,17 @@ async def test_meter_pro_set_external_sensor_mac_service(mock_meter_pro_coordina
         mock_meter_pro_coordinator.device.set_external_sensor_mac.assert_awaited_once_with(
             mac_address="AA:BB:CC:DD:EE:FF",
             slot=1,
+            switch_display=True,
+        )
+
+        # Test with explicit switch_display=False
+        mock_meter_pro_coordinator.device.set_external_sensor_mac.reset_mock()
+        call.data["switch_display"] = False
+        await async_meter_pro_set_external_sensor_mac(call)
+        mock_meter_pro_coordinator.device.set_external_sensor_mac.assert_awaited_once_with(
+            mac_address="AA:BB:CC:DD:EE:FF",
+            slot=1,
+            switch_display=False,
         )
 
 

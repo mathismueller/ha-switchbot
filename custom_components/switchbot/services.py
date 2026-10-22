@@ -25,6 +25,7 @@ ATTR_PASSWORD = "password"
 ATTR_ICON = "icon"
 ATTR_MAC_ADDRESS = "mac_address"
 ATTR_SLOT = "slot"
+ATTR_SWITCH_DISPLAY = "switch_display"
 
 ICON_MAP = {
     "none": 0,
@@ -64,6 +65,7 @@ SCHEMA_SET_EXTERNAL_SENSOR_MAC_SERVICE = vol.Schema(
         vol.Optional(ATTR_SLOT, default=1): vol.All(
             vol.Coerce(int), vol.In([1, 2])
         ),
+        vol.Optional(ATTR_SWITCH_DISPLAY, default=True): cv.boolean,
     },
     extra=vol.ALLOW_EXTRA,
 )
@@ -144,6 +146,7 @@ async def async_meter_pro_set_external_sensor_mac(call: ServiceCall) -> None:
     device_id: str = call.data[ATTR_DEVICE_ID]
     mac_address: str = call.data[ATTR_MAC_ADDRESS]
     slot: int = call.data.get(ATTR_SLOT, 1)
+    switch_display: bool = call.data.get(ATTR_SWITCH_DISPLAY, True)
 
     entry = _async_get_switchbot_entry_for_device_id(call.hass, device_id)
     coordinator = entry.runtime_data
@@ -163,6 +166,7 @@ async def async_meter_pro_set_external_sensor_mac(call: ServiceCall) -> None:
     await coordinator.device.set_external_sensor_mac(
         mac_address=mac_address,
         slot=slot,
+        switch_display=switch_display,
     )
 
 
