@@ -117,6 +117,9 @@
       },
       "low_temperature": {
         "name": "Low temperature"
+      },
+      "usb_c_status": {
+        "name": "USB-C power"
       }
     },
     "button": {
@@ -124,7 +127,7 @@
         "name": "Force CO2 measurement"
       },
       "refresh_measurements": {
-        "name": "Refresh measurements"
+        "name": "Refresh temperature and humidity"
       },
       "silence_alarm": {
         "name": "Silence alarm"
@@ -469,6 +472,9 @@
       }
     },
     "sensor": {
+      "firmware": {
+        "name": "Firmware"
+      },
       "aqi_quality_level": {
         "name": "Air quality level",
         "state": {

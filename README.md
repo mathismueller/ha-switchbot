@@ -51,12 +51,16 @@ This integration is a direct drop-in replacement for the core Home Assistant `sw
 
 ### 4. Buttons (`button`)
 * **Sync Date and Time (`button.sync_datetime`)**: Immediately synchronize the hardware real-time clock to Home Assistant UTC time.
-* **Refresh Measurements (`button.refresh_measurements`)**: Immediately trigger an environmental sensor measurement refresh on the hardware (simulates top button press).
+* **Refresh Temperature & Humidity (`button.refresh_measurements`)**: Immediately trigger an environmental sensor (temperature and humidity) measurement refresh on the hardware (simulates top button press; does not perform CO2 sampling).
 * **Force CO2 Measurement (`button.force_co2_measurement`)**: Trigger an immediate, fresh NDIR CO2 sensor measurement regardless of the sleep interval, polling the result and updating Home Assistant sensor state.
 * **Silence Alarm (`button.silence_alarm`)**: Mute the active alarm buzzer sound and stop screen flashing.
 * **Calibrate CO2 Sensor (`button.calibrate_co2`)**: Start the 5-minute automated CO2 sensor recalibration routine (place device in ventilated outdoor air first).
 
-### 5. Actions / Services (`service`)
+### 5. Diagnostic Sensors (`sensor` & `binary_sensor`)
+* **Firmware Version (`sensor.firmware`)**: Diagnostic sensor displaying the device firmware version (e.g. `1.5`), polled and cached from device basic info.
+* **USB-C Power Status (`binary_sensor.usb_c_status`)**: Diagnostic binary sensor indicating whether the Meter Pro CO2 is connected to USB-C constant power (`Connected` / `Disconnected`), updated in real time via broadcast advertisements and GATT connection.
+
+### 6. Actions / Services (`service`)
 * **`switchbot.meter_pro_set_weather`**: Push current local weather forecast condition icon to the Meter Pro LCD header.
   ```yaml
   action: switchbot.meter_pro_set_weather

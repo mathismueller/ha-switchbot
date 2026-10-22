@@ -6,6 +6,10 @@ import pytest
 from switchbot import SwitchbotModel
 
 from homeassistant.exceptions import ServiceValidationError
+from custom_components.switchbot.binary_sensor import (
+    SwitchBotMeterProCO2PowerBinarySensor,
+    async_setup_entry as async_setup_binary_sensor,
+)
 from custom_components.switchbot.button import (
     SwitchBotMeterProCO2CalibrateButton,
     SwitchBotMeterProCO2ForceMeasurementButton,
@@ -34,6 +38,10 @@ from custom_components.switchbot.select import (
     SwitchBotMeterProTemperatureUpdateIntervalSelect,
     SwitchBotMeterProWeatherConditionSelect,
     async_setup_entry as async_setup_select,
+)
+from custom_components.switchbot.sensor import (
+    SwitchBotMeterProFirmwareSensor,
+    async_setup_entry as async_setup_sensor,
 )
 from custom_components.switchbot.services import (
     ICON_MAP,
@@ -556,3 +564,33 @@ async def test_firmware_version_in_device_info(mock_meter_pro_coordinator):
     mock_meter_pro_coordinator.device.parsed_data = {"firmware": 1.5}
     entity_dynamic._async_update_attrs()
     assert entity_dynamic.device_info["sw_version"] == "1.5"
+
+
+async def test_firmware_diagnostic_sensor(mock_meter_pro_coordinator):
+    """Test firmware diagnostic sensor."""
+    mock_meter_pro_coordinator.device.parsed_data = {"firmware": 1.5}
+    mock_meter_pro_coordinator.device.get_basic_info = AsyncMock(
+        return_value={"firmware": 1.5, "battery": 90}
+    )
+    sensor = SwitchBotMeterProFirmwareSensor(mock_meter_pro_coordinator)
+    assert sensor.unique_id == "aa:bb:cc:dd:ee:ff-firmware"
+    assert sensor.native_value == "1.5"
+    await sensor._async_read_value()
+    mock_meter_pro_coordinator.device.get_basic_info.assert_awaited_once()
+
+
+async def test_usb_c_status_binary_sensor(mock_meter_pro_co2_coordinator):
+    """Test USB-C status diagnostic binary sensor."""
+    mock_meter_pro_co2_coordinator.device.parsed_data = {"power_type_c": True}
+    mock_meter_pro_co2_coordinator.device.get_power_status = AsyncMock(
+        return_value={"plugged_in": True}
+    )
+    sensor = SwitchBotMeterProCO2PowerBinarySensor(mock_meter_pro_co2_coordinator)
+    assert sensor.unique_id == "aa:bb:cc:dd:ee:ff-usb_c_status"
+    assert sensor.is_on is True
+
+    mock_meter_pro_co2_coordinator.device.get_power_status = AsyncMock(
+        return_value={"plugged_in": False}
+    )
+    await sensor._async_read_value()
+    assert sensor.is_on is False

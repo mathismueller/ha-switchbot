@@ -33,7 +33,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import AIRPURIFIER_PM25_MODELS, DOMAIN
 from .coordinator import SwitchbotConfigEntry, SwitchbotDataUpdateCoordinator
-from .entity import SwitchbotEntity
+from .entity import SwitchbotConnectionPolledEntity, SwitchbotEntity
 
 PARALLEL_UPDATES = 0
 
@@ -221,8 +221,41 @@ async def async_setup_entry(
         sensor_entities.extend(
             SwitchBotSensor(coordinator, sensor) for sensor in sensors
         )
+    if isinstance(coordinator.device, switchbot.SwitchbotMeterPro):
+        sensor_entities.append(SwitchBotMeterProFirmwareSensor(coordinator))
     sensor_entities.append(SwitchbotRSSISensor(coordinator, "rssi"))
     async_add_entities(sensor_entities)
+
+
+class SwitchBotMeterProFirmwareSensor(
+    SwitchbotConnectionPolledEntity, SensorEntity
+):
+    """Diagnostic sensor for Meter Pro firmware version."""
+
+    _device: switchbot.SwitchbotMeterPro
+    _attr_translation_key = "firmware"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
+        """Initialize firmware sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_unique_id}-firmware"
+
+    @property
+    @override
+    def native_value(self) -> str | None:
+        """Return firmware version."""
+        if (fw := self.parsed_data.get("firmware")) is not None:
+            return f"{fw:.1f}" if isinstance(fw, (int, float)) else str(fw)
+        return None
+
+    @override
+    async def _async_read_value(self) -> None:
+        """Fetch basic info from device to populate firmware version."""
+        info = await self._device.get_basic_info()
+        if info and "firmware" in info:
+            self._device._override_state({"firmware": info["firmware"]})
+            self._attr_native_value = f"{info['firmware']:.1f}"
 
 
 class SwitchBotSensor(SwitchbotEntity, SensorEntity):

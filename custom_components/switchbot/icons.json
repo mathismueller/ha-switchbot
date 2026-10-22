@@ -1,6 +1,9 @@
 {
   "entity": {
     "binary_sensor": {
+      "usb_c_status": {
+        "default": "mdi:power-plug"
+      },
       "half_lock_calibration": {
         "default": "mdi:lock-check"
       }
@@ -175,6 +178,9 @@
       }
     },
     "sensor": {
+      "firmware": {
+        "default": "mdi:chip"
+      },
       "aqi_quality_level": {
         "default": "mdi:air-filter",
         "state": {
