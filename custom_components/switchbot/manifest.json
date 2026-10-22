@@ -30,12 +30,7 @@
   ],
   "categories": ["sensors", "blinds_curtains", "plugs_switches"],
   "codeowners": [
-    "@danielhiversen",
-    "@RenierM26",
-    "@murtas",
-    "@Eloston",
-    "@dsypniewski",
-    "@zerzhang"
+    "@mathismueller"
   ],
   "config_flow": true,
   "dependencies": ["bluetooth_adapters"],
